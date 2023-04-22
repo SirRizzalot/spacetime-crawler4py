@@ -1,13 +1,12 @@
 import re
-from lxml import etree, etree
-import requests
+from lxml import etree
+from io import StringIO
 from urllib.parse import urlparse
-import utils.response
 
 from utils.download import download
 
 
-def scraper(url:str, resp: utils.response.Response) -> list:
+def scraper(url:str, resp) -> list:
     links = extract_next_links(url, resp)
     return [link for link in links if is_valid(link)]
 
@@ -22,14 +21,17 @@ def extract_next_links(url, resp):
     #         resp.raw_response.content: the content of the page!
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
     try:
-        response = requests.get(resp.url)
-        root = etree.ElementTree(response.content)
-        if resp.status is 200:
-            pass
+        parser = etree.HTMLParser()
+        tree = etree.HTML(resp.raw_response.content, parser)
+        # tree = etree.parse(StringIO(resp.raw_response.content), root)
+        # result = etree.tostring(tree.getroot(), pretty_print=True, method="html")
+        print(etree.tostring(tree))
+        print("\n\n\n")
+        return list()
     except:
         pass
 
-    return list()
+
 
 def is_valid(url):
     # Decide whether to crawl this url or not. 
