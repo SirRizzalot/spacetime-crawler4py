@@ -1,13 +1,15 @@
 import re
 from lxml import etree
 from io import StringIO
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlunparse, urldefrag
+
 
 from utils.download import download
 
 
 def scraper(url:str, resp) -> list:
     links = extract_next_links(url, resp)
+
     return [link for link in links if is_valid(link)]
 
 def extract_next_links(url, resp):
@@ -20,14 +22,39 @@ def extract_next_links(url, resp):
     #         resp.raw_response.url: the url, again
     #         resp.raw_response.content: the content of the page!
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
+    urls = []
     try:
         parser = etree.HTMLParser()
         tree = etree.HTML(resp.raw_response.content, parser)
         # tree = etree.parse(StringIO(resp.raw_response.content), root)
         # result = etree.tostring(tree.getroot(), pretty_print=True, method="html")
-        print(etree.tostring(tree))
+        # parsed_url = urlparse(etree.tostring(tree))
+
+
+        for link in tree.xpath('//a'):
+            relative_url = link.get('href')
+
+            if relative_url and relative_url.startswith('#'):
+                # print(relative_url)
+                continue
+            parsed_url = urlparse(relative_url)
+
+            if parsed_url.scheme and parsed_url.netloc:
+                defrag, _ = urldefrag(relative_url)
+                urls.append(defrag)
+
+                # urls.append(relative_url)
+                # if defrag != relative_url:
+                #     print(defrag, relative_url)
+
+            # urls.append(relative_url)
+        print(urls)
+        print(len(urls))
+
+        # print(etree.tostring(tree))
         print("\n\n\n")
-        return list()
+        # return urls
+        return urls
     except:
         pass
 
@@ -43,7 +70,7 @@ def is_valid(url):
         if parsed.scheme not in set(["http", "https"]):
             return False
         if not re.match(
-                r"[.+(\.ics\.uci\.edu)|(\.cs\.uci\.edu)|(\.informatics\.uci\.edu)|(\.stat\.uci\.edu).+(\#]", parsed):
+                r"[.+(\.ics\.uci\.edu)|(\.cs\.uci\.edu)|(\.informatics\.uci\.edu)|(\.stat\.uci\.edu)*.", parsed):
             return False
         #  url = https://www.ics.uci.edu
         # hostname = www.ics.cui.edu
