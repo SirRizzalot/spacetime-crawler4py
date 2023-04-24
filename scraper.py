@@ -3,6 +3,16 @@ from lxml import html
 from urllib.parse import urlparse
 
 from utils.download import download
+from collections import defaultdict
+
+# global variable - a mutual dictionary for all words found
+# containing words as key and their frequency as value in a list.
+frequented = defaultdict(int)
+
+def computeWordFrequencies(tokenized_text: list, frequented) -> dict:
+    for k in tokenized_text:
+        frequented[k] += 1
+    return frequented  # constant
 
 
 def scraper(url:str, resp) -> list:
@@ -10,6 +20,22 @@ def scraper(url:str, resp) -> list:
     return [link for link in links if is_valid(link)]
 
 def extract_next_links(url, resp):
+    stop_words = ["a", "about", "above", "after", "again", "against", "all", "am", "an", "and", "any", 
+                "are", "aren't", "as", "at", "be", "because", "been", "before", "being", "below", "between", 
+                "both", "but", "by", "can't", "cannot", "could", "couldn't", "did", "didn't", "do", "does", 
+                "doesn't", "doing", "don't", "down", "during", "each", "few", "for", "from", "further", "had", 
+                "hadn't", "has", "hasn't", "have", "haven't", "having", "he", "he'd", "he'll", "he's", "her", 
+                "here", "here's", "hers", "herself", "him", "himself", "his", "how", "how's", "i", "i'd", "i'll", 
+                "i'm", "i've", "if", "in", "into", "is", "isn't", "it", "it's", "its", "itself", "let's", "me", 
+                "more", "most", "mustn't", "my", "myself", "no", "nor", "not", "of", "off", "on", "once", "only", 
+                "or", "other", "ought", "our", "ours", "ourselves", "out", "over", "own", "same", "shan't", "she", 
+                "she'd", "she'll", "she's", "should", "shouldn't", "so", "some", "such", "than", "that", "that's", 
+                "the", "their", "theirs", "them", "themselves", "then", "there", "there's", "these", "they", 
+                "they'd", "they'll", "they're", "they've", "this", "those", "through", "to", "too", "under", 
+                "until", "up", "very", "was", "wasn't", "we", "we'd", "we'll", "we're", "we've", "were", "weren't", 
+                "what", "what's", "when", "when's", "where", "where's", "which", "while", "who", "who's", "whom", 
+                "why", "why's", "with", "won't", "would", "wouldn't", "you", "you'd", "you'll", "you're", "you've", 
+                "your", "yours", "yourself", "yourselves"]
     # Implementation required.
     # url: the URL that was used to get the page
     # resp.url: the actual url of the page
@@ -28,14 +54,30 @@ def extract_next_links(url, resp):
         # ++could use improvement as to which body to grab from
 
         words = ' '.join(line_list)
-        print(re.findall('[a-zA-Z0-9]+[^((\\n|\\t)*)]', words))
+        match = re.findall('[a-zA-Z0-9]+', words.lower())
+        word = [word for word in match if not word in stop_words]
+        print(word)
         # basically the same functionality as project1 tokenize
 
+        computeWordFrequencies(word, frequented)
+
+        report()
         print("\n\n\n")
         return list()
     except:
         print("error")
 
+
+def report(): 
+    # Print out the top 50 frequent words
+    f1 = open("analytics-report.txt", "w", encoding="UTF-8")
+    most_common_words = dict(list(frequented.items())[0: 50])
+    
+    for (k, v) in sorted(most_common_words.items(), key=lambda x: (-x[1], x[0])):
+        # sorted will take an average of o(n log n)
+        # at worst every word is unique, so we loop in times O(N)
+        print(f"{k} -> {v}", file=f1)  # constant
+    f1.close()
 
 
 def is_valid(url):
