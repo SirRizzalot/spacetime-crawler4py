@@ -1,6 +1,5 @@
 import re
-from lxml import etree
-from io import StringIO
+from lxml import html
 from urllib.parse import urlparse
 
 from utils.download import download
@@ -21,20 +20,26 @@ def extract_next_links(url, resp):
     #         resp.raw_response.content: the content of the page!
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
     try:
-        parser = etree.HTMLParser()
-        tree = etree.HTML(resp.raw_response.content, parser)
+        tree = html.fromstring(resp.raw_response.content)
         # tree = etree.parse(StringIO(resp.raw_response.content), root)
         # result = etree.tostring(tree.getroot(), pretty_print=True, method="html")
-        print(etree.tostring(tree))
+        line_list = tree.xpath("//text()")
+        # grabs all the text on the website
+        # ++could use improvement as to which body to grab from
+
+        words = ' '.join(line_list)
+        print(re.findall('[a-zA-Z0-9]+[^((\\n|\\t)*)]', words))
+        # basically the same functionality as project1 tokenize
+
         print("\n\n\n")
         return list()
     except:
-        pass
+        print("error")
 
 
 
 def is_valid(url):
-    # Decide whether to crawl this url or not. 
+    # Decide whether to crawl this url or not.
     # If you decide to crawl it, return True; otherwise return False.
     # There are already some conditions that return False.
     try:
