@@ -71,9 +71,13 @@ def extract_next_links(url, resp):
 def report(): 
     # Print out the top 50 frequent words
     f1 = open("analytics-report.txt", "w", encoding="UTF-8")
-    most_common_words = dict(list(frequented.items())[0: 50])
+    # sort the frequented dict
+    sorted_frequented = dict(sorted(frequented.items(), key=lambda x: (-x[1], x[0])))
+    # extract the first 50 key-value pairs
+    most_common_words = dict(list(sorted_frequented.items())[0: 50])
     
-    for (k, v) in sorted(most_common_words.items(), key=lambda x: (-x[1], x[0])):
+    
+    for (k, v) in most_common_words.items():
         # sorted will take an average of o(n log n)
         # at worst every word is unique, so we loop in times O(N)
         print(f"{k} -> {v}", file=f1)  # constant
