@@ -80,7 +80,7 @@ def report():
     word_list_read = open("word_list.txt", "r")
     for word in word_list_read: # each line will contain a word
 
-        frequented[word] += 1
+        frequented[word.strip()] += 1
     word_list_read.close()
 
 
