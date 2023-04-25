@@ -9,8 +9,11 @@ from utils.download import download
 
 def scraper(url:str, resp) -> list:
     links = extract_next_links(url, resp)
+    # print([is_valid(link) for link in links])
 
-    return [link for link in links if is_valid(link)]
+    if len(links) > 0:
+        return [link for link in links if is_valid(link)]
+    return links
 
 def extract_next_links(url, resp):
     # Implementation required.
@@ -22,40 +25,45 @@ def extract_next_links(url, resp):
     #         resp.raw_response.url: the url, again
     #         resp.raw_response.content: the content of the page!
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
-    urls = []
+    urls = list()
     try:
-        parser = etree.HTMLParser()
-        tree = etree.HTML(resp.raw_response.content, parser)
-        # tree = etree.parse(StringIO(resp.raw_response.content), root)
-        # result = etree.tostring(tree.getroot(), pretty_print=True, method="html")
-        # parsed_url = urlparse(etree.tostring(tree))
+        if resp.status == 200:
 
+            parser = etree.HTMLParser()
+            tree = etree.HTML(resp.raw_response.content, parser)
+            # tree = etree.parse(StringIO(resp.raw_response.content), root)
+            # result = etree.tostring(tree.getroot(), pretty_print=True, method="html")
+            # parsed_url = urlparse(etree.tostring(tree))
+            for link in tree.xpath('//a'):
+                relative_url = link.get('href')
 
-        for link in tree.xpath('//a'):
-            relative_url = link.get('href')
+                if relative_url and relative_url.startswith('#'):
+                    # print(relative_url)
+                    continue
+                parsed_url = urlparse(relative_url)
 
-            if relative_url and relative_url.startswith('#'):
-                # print(relative_url)
-                continue
-            parsed_url = urlparse(relative_url)
+                if parsed_url.scheme and parsed_url.netloc:
+                    defrag, _ = urldefrag(relative_url)
+                    urls.append(defrag)
 
-            if parsed_url.scheme and parsed_url.netloc:
-                defrag, _ = urldefrag(relative_url)
-                urls.append(defrag)
+                    # urls.append(relative_url)
+                    # if defrag != relative_url:
+                    #     print(defrag, relative_url)
 
                 # urls.append(relative_url)
-                # if defrag != relative_url:
-                #     print(defrag, relative_url)
 
-            # urls.append(relative_url)
-        print(urls)
-        print(len(urls))
+            print(urls)
+            print(len(urls))
 
-        # print(etree.tostring(tree))
-        print("\n\n\n")
-        # return urls
-        return urls
+            # print(etree.tostring(tree))
+            print("\n\n\n")
+            # return urls
+            return urls
+        else:
+            print(url, resp.error)
+            return list()
     except:
+        print("TRIGGERED", url, resp.status)
         pass
 
 
@@ -65,15 +73,16 @@ def is_valid(url):
     # If you decide to crawl it, return True; otherwise return False.
     # There are already some conditions that return False.
     try:
-        parsed = urlparse(url)
 
+        parsed = urlparse(url)
         if parsed.scheme not in set(["http", "https"]):
             return False
         if not re.match(
-                r"[.+(\.ics\.uci\.edu)|(\.cs\.uci\.edu)|(\.informatics\.uci\.edu)|(\.stat\.uci\.edu)*.", parsed):
+                r".+[(\.ics\.uci\.edu)|(\.cs\.uci\.edu)|(\.informatics\.uci\.edu)|(\.stat\.uci\.edu)]", parsed.netloc):
             return False
         #  url = https://www.ics.uci.edu
         # hostname = www.ics.cui.edu
+
         return not re.match(
             r".*\.(css|js|bmp|gif|jpe?g|ico"
             + r"|png|tiff?|mid|mp2|mp3|mp4"
@@ -84,8 +93,8 @@ def is_valid(url):
             + r"|thmx|mso|arff|rtf|jar|csv"
             + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$", parsed.path.lower())
 
-    except TypeError:
-        print ("TypeError for ", parsed)
+    except:
+        print(parsed)
         raise
 
 
