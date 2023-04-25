@@ -43,12 +43,17 @@ def extract_next_links(url, resp):
         tree = html.fromstring(resp.raw_response.content)
         # tree = etree.parse(StringIO(resp.raw_response.content), root)
         # result = etree.tostring(tree.getroot(), pretty_print=True, method="html")
-        line_list = tree.xpath("//text()")
+        line_list = tree.xpath("//body//text()")
         # grabs all the text on the website
         # ++could use improvement as to which body to grab from
-
+        if(url == "https://www.stat.uci.edu"):
+            print(resp.raw_response.content)
         words = ' '.join(line_list)
-        match = re.findall('[a-zA-Z0-9]+', words.lower())
+        match = re.findall('[0-9]+|(?:[a-zA-Z0-9]{1,}[a-zA-Z0-9]+(?:\'s|\.d){0,1})', words.lower())
+        # regex for including that's and ph.d as it is:
+        #                   [0-9]+|(?:[a-zA-Z0-9]{1,}[a-zA-Z0-9]+(?:\'s|\.d){0,1})
+        #regext for spliting it:
+        #                   [0-9]+|(?:[a-zA-Z0-9]{1,}[a-zA-Z0-9]+)
 
 
         # print (append) all words to the txt file for word count later on
@@ -56,6 +61,8 @@ def extract_next_links(url, resp):
         for each_word in match:
             print(each_word, file=f1)
         f1.close()
+
+        # print(match)
 
         # update page's word_count to len of word list
         word_count = len(match)
@@ -79,7 +86,6 @@ def report():
     # read word_list.txt file and compute word freq, store in frequented dict 
     word_list_read = open("word_list.txt", "r")
     for word in word_list_read: # each line will contain a word
-
         frequented[word.strip()] += 1
     word_list_read.close()
 
