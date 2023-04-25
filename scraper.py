@@ -49,17 +49,16 @@ def extract_next_links(url, resp):
 
         words = ' '.join(line_list)
         match = re.findall('[a-zA-Z0-9]+', words.lower())
-        word = [word for word in match if not word in stop_words]
 
 
         # print (append) all words to the txt file for word count later on
         f1 = open("word_list.txt", "a", encoding="UTF-8")
-        for each_word in word:
+        for each_word in match:
             print(each_word, file=f1)
         f1.close()
 
         # update page's word_count to len of word list
-        word_count = len(word)
+        word_count = len(match)
         # if current page's word count > the one in longest_page, update longest_page to wordcount and url of current page
         if word_count > longest_page["word-count"]:
             longest_page["url"] = resp.url
@@ -80,6 +79,7 @@ def report():
     # read word_list.txt file and compute word freq, store in frequented dict 
     word_list_read = open("word_list.txt", "r")
     for word in word_list_read: # each line will contain a word
+
         frequented[word] += 1
     word_list_read.close()
 
@@ -87,19 +87,24 @@ def report():
     # write the top 50 frequent words to analytics-report.txt file
     word_list_write = open("analytics-report.txt", "w", encoding="UTF-8")
     # sort the frequented dict
-    sorted_frequented = dict(sorted(frequented.items(), key=lambda x: (-x[1], x[0])))
+    sorted_frequented = sorted(frequented.items(), key=lambda x: (-x[1], x[0]))
     # extract the first 50 key-value pairs
-    most_common_words = dict(list(sorted_frequented.items())[0: 50])
-    
+    most_common_words = list()
+    cur_word = 0
+    while len(most_common_words) < 50:
+        if sorted_frequented[cur_word][0] not in stop_words:
+            most_common_words.append(sorted_frequented[cur_word])
+        cur_word+=1
     print("50 MOST COMMON WORDS:", file=word_list_write)
-    for (k, v) in most_common_words.items():
+    for (k, v) in most_common_words:
         # sorted will take an average of o(n log n)
         # at worst every word is unique, so we loop in times O(N)
         print(f"{k} -> {v}", file=word_list_write)  # constant
+        print(f"{k} -> {v}")
     
     # LONGEST PAGE
     print(f"\nThe longest page's URL: {longest_page['url']}. Word count: {longest_page['word-count']}", file=word_list_write)
-
+    print(f"\nThe longest page's URL: {longest_page['url']}. Word count: {longest_page['word-count']}")
 
 
     word_list_write.close()
