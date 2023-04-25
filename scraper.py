@@ -5,10 +5,6 @@ from urllib.parse import urlparse
 from utils.download import download
 from collections import defaultdict
 
-#Dict hold the URL with max number of words
-longest_page = {'URL': "", 'word_count': 0}
-word_count = 0
-
 stop_words = ["a", "about", "above", "after", "again", "against", "all", "am", "an", "and", "any", 
             "are", "aren't", "as", "at", "be", "because", "been", "before", "being", "below", "between", 
             "both", "but", "by", "can't", "cannot", "could", "couldn't", "did", "didn't", "do", "does", 
@@ -26,6 +22,7 @@ stop_words = ["a", "about", "above", "after", "again", "against", "all", "am", "
             "why", "why's", "with", "won't", "would", "wouldn't", "you", "you'd", "you'll", "you're", "you've", 
             "your", "yours", "yourself", "yourselves"]
 
+longest_page = {"url":"", "word-count": 0}
 
 def scraper(url:str, resp) -> list:
     links = extract_next_links(url, resp)
@@ -42,7 +39,6 @@ def extract_next_links(url, resp):
     #         resp.raw_response.content: the content of the page!
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
 
-
     try:
         tree = html.fromstring(resp.raw_response.content)
         # tree = etree.parse(StringIO(resp.raw_response.content), root)
@@ -54,19 +50,21 @@ def extract_next_links(url, resp):
         words = ' '.join(line_list)
         match = re.findall('[a-zA-Z0-9]+', words.lower())
         word = [word for word in match if not word in stop_words]
-        
+
+
         # print (append) all words to the txt file for word count later on
         f1 = open("word_list.txt", "a", encoding="UTF-8")
         for each_word in word:
             print(each_word, file=f1)
         f1.close()
 
-        print("\n\n\n")
-        # basically the same functionality as project1 tokenize
+        # update page's word_count to len of word list
+        word_count = len(word)
+        # if current page's word count > the one in longest_page, update longest_page to wordcount and url of current page
+        if word_count > longest_page["word-count"]:
+            longest_page["url"] = resp.url
+            longest_page["word-count"] = word_count
 
-        # Tokenize words and count word frequency
-        #might do this from reading input file
-        #computeWordFrequencies(word, frequented)
 
         return list()
     except:
@@ -78,6 +76,7 @@ def report():
     # a dictionary for all words found; containing words as key and their frequency as value in a list.
     frequented = defaultdict(int)
 
+    # TOP 50 FREQUENCIES
     # read word_list.txt file and compute word freq, store in frequented dict 
     word_list_read = open("word_list.txt", "r")
     for word in word_list_read: # each line will contain a word
@@ -92,12 +91,21 @@ def report():
     # extract the first 50 key-value pairs
     most_common_words = dict(list(sorted_frequented.items())[0: 50])
     
+    print("50 MOST COMMON WORDS:", file=word_list_write)
     for (k, v) in most_common_words.items():
         # sorted will take an average of o(n log n)
         # at worst every word is unique, so we loop in times O(N)
         print(f"{k} -> {v}", file=word_list_write)  # constant
     
+    # LONGEST PAGE
+    print(f"\nThe longest page's URL: {longest_page['url']}. Word count: {longest_page['word-count']}", file=word_list_write)
+
+
+
     word_list_write.close()
+
+
+
 
 
 def is_valid(url):
