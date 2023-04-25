@@ -5,6 +5,7 @@ from utils.server_registration import get_cache_server
 from utils.config import Config
 from crawler import Crawler
 
+import scraper
 
 def main(config_file, restart):
     cparser = ConfigParser()
@@ -21,3 +22,5 @@ if __name__ == "__main__":
     parser.add_argument("--config_file", type=str, default="config.ini")
     args = parser.parse_args()
     main(args.config_file, args.restart)
+    #write the report to analytics-report.txt
+    scraper.report()

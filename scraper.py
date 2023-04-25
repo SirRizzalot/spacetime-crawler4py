@@ -5,9 +5,9 @@ from urllib.parse import urlparse
 from utils.download import download
 from collections import defaultdict
 
-# global variable - a mutual dictionary for all words found
-# containing words as key and their frequency as value in a list.
-frequented = defaultdict(int)
+#Dict hold the URL with max number of words
+longest_page = {'URL': "", 'word_count': 0}
+word_count = 0
 
 stop_words = ["a", "about", "above", "after", "again", "against", "all", "am", "an", "and", "any", 
             "are", "aren't", "as", "at", "be", "because", "been", "before", "being", "below", "between", 
@@ -26,11 +26,6 @@ stop_words = ["a", "about", "above", "after", "again", "against", "all", "am", "
             "why", "why's", "with", "won't", "would", "wouldn't", "you", "you'd", "you'll", "you're", "you've", 
             "your", "yours", "yourself", "yourselves"]
 
-def computeWordFrequencies(tokenized_text: list, frequented) -> dict:
-    for k in tokenized_text:
-        frequented[k] += 1
-    return frequented  # constant
-
 
 def scraper(url:str, resp) -> list:
     links = extract_next_links(url, resp)
@@ -46,6 +41,8 @@ def extract_next_links(url, resp):
     #         resp.raw_response.url: the url, again
     #         resp.raw_response.content: the content of the page!
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
+
+
     try:
         tree = html.fromstring(resp.raw_response.content)
         # tree = etree.parse(StringIO(resp.raw_response.content), root)
@@ -57,33 +54,50 @@ def extract_next_links(url, resp):
         words = ' '.join(line_list)
         match = re.findall('[a-zA-Z0-9]+', words.lower())
         word = [word for word in match if not word in stop_words]
-        print(word)
+        
+        # print (append) all words to the txt file for word count later on
+        f1 = open("word_list.txt", "a", encoding="UTF-8")
+        for each_word in word:
+            print(each_word, file=f1)
+        f1.close()
+
         print("\n\n\n")
         # basically the same functionality as project1 tokenize
 
-        computeWordFrequencies(word, frequented)
-        # write to txt file for our analytics report on output
-        report()
-        
+        # Tokenize words and count word frequency
+        #might do this from reading input file
+        #computeWordFrequencies(word, frequented)
+
         return list()
     except:
         print("error")
 
 
 def report(): 
-    # Print out the top 50 frequent words
-    f1 = open("analytics-report.txt", "w", encoding="UTF-8")
+    # initialize list variables
+    # a dictionary for all words found; containing words as key and their frequency as value in a list.
+    frequented = defaultdict(int)
+
+    # read word_list.txt file and compute word freq, store in frequented dict 
+    word_list_read = open("word_list.txt", "r")
+    for word in word_list_read: # each line will contain a word
+        frequented[word] += 1
+    word_list_read.close()
+
+
+    # write the top 50 frequent words to analytics-report.txt file
+    word_list_write = open("analytics-report.txt", "w", encoding="UTF-8")
     # sort the frequented dict
     sorted_frequented = dict(sorted(frequented.items(), key=lambda x: (-x[1], x[0])))
     # extract the first 50 key-value pairs
     most_common_words = dict(list(sorted_frequented.items())[0: 50])
     
-    
     for (k, v) in most_common_words.items():
         # sorted will take an average of o(n log n)
         # at worst every word is unique, so we loop in times O(N)
-        print(f"{k} -> {v}", file=f1)  # constant
-    f1.close()
+        print(f"{k} -> {v}", file=word_list_write)  # constant
+    
+    word_list_write.close()
 
 
 def is_valid(url):
