@@ -1,7 +1,7 @@
 import re
 from lxml import html
 from urllib.parse import urlparse
-
+from lmxl.html.clean import Cleaner
 from utils.download import download
 from collections import defaultdict
 
@@ -47,7 +47,13 @@ def extract_next_links(url, resp):
         # grabs all the text on the website
         # ++could use improvement as to which body to grab from
 
-        words = ' '.join(line_list)
+        # or do
+        #cleaned_text = line_list.text_content() (erase line 46)
+        # not tested yet; clean html tags
+        cleaner = Cleaner(allow_tags=[''], remove_unknown_tags=False)
+        cleaned_text = cleaner.clean_html(line_list)
+        words = ' '.join(cleaned_text)
+        ###
         match = re.findall('[a-zA-Z0-9]+', words.lower())
 
 
