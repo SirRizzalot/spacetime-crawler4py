@@ -41,20 +41,15 @@ def extract_next_links(url, resp):
 
     try:
         tree = html.fromstring(resp.raw_response.content)
-        # tree = etree.parse(StringIO(resp.raw_response.content), root)
-        # result = etree.tostring(tree.getroot(), pretty_print=True, method="html")
-        line_list = tree.xpath("//body//text()")
-        # grabs all the text on the website
-        # ++could use improvement as to which body to grab from
-        if(url == "https://www.stat.uci.edu"):
-            print(resp.raw_response.content)
+        line_list = tree.xpath("//p//text()")
+        # grabs item within <p> </p>
+
         words = ' '.join(line_list)
         match = re.findall('[0-9]+|(?:[a-zA-Z0-9]{1,}[a-zA-Z0-9]+(?:\'s|\.d){0,1})', words.lower())
         # regex for including that's and ph.d as it is:
         #                   [0-9]+|(?:[a-zA-Z0-9]{1,}[a-zA-Z0-9]+(?:\'s|\.d){0,1})
         #regext for spliting it:
         #                   [0-9]+|(?:[a-zA-Z0-9]{1,}[a-zA-Z0-9]+)
-
 
         # print (append) all words to the txt file for word count later on
         f1 = open("word_list.txt", "a", encoding="UTF-8")
