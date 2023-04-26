@@ -1,10 +1,13 @@
 import re
 from lxml import etree
 from io import StringIO
-from urllib.parse import urlparse, urlunparse, urldefrag
+from urllib.parse import urlparse, urlunparse, urldefrag, urljoin
 
 
 from utils.download import download
+
+# dictionary to contain subdomains of ics.uci.edu and number of unique pages in that subdomain
+subdomain_pages = {}
 
 
 def scraper(url:str, resp) -> list:
@@ -27,22 +30,26 @@ def extract_next_links(url, resp):
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
     urls = list()
     try:
+        # crawling URL only if status code is 200
         if resp.status == 200:
-
+            # parsing website
             parser = etree.HTMLParser()
             tree = etree.HTML(resp.raw_response.content, parser)
             # tree = etree.parse(StringIO(resp.raw_response.content), root)
             # result = etree.tostring(tree.getroot(), pretty_print=True, method="html")
             # parsed_url = urlparse(etree.tostring(tree))
+
+            # getting only the hyperlinks
             for link in tree.xpath('//a'):
                 relative_url = link.get('href')
-
+                # statement to ignore #
                 if relative_url and relative_url.startswith('#'):
                     # print(relative_url)
                     continue
                 parsed_url = urlparse(relative_url)
-
+                # checking to see if hyperlink has required properties of URLs
                 if parsed_url.scheme and parsed_url.netloc:
+                    # removing fragments from URL
                     defrag, _ = urldefrag(relative_url)
                     urls.append(defrag)
 
