@@ -40,31 +40,41 @@ def extract_next_links(url, resp):
             # parsed_url = urlparse(etree.tostring(tree))
 
             # getting only the hyperlinks
-            for link in tree.xpath('//a'):
-                relative_url = link.get('href')
+            for link in tree.xpath('//a | //img'):
+                relative_url = link.get('href') or link.get('src')
+                # relativeurl_src = link.get('src')
+
+
+
+                    # print(relativeurl_src)
                 # statement to ignore #
                 if relative_url and relative_url.startswith('#'):
                     # print(relative_url)
                     continue
                 parsed_url = urlparse(relative_url)
+                # if url == 'https://www.ics.uci.edu':
+                #     print(relative_url, "HERE", parsed_url.netloc, "PARSED", parsed_url)
                 # checking to see if hyperlink has required properties of URLs
                 if parsed_url.scheme and parsed_url.netloc:
                     # removing fragments from URL
                     defrag, _ = urldefrag(relative_url)
                     urls.append(defrag)
+                # converting relative urls to absolute URL
+                if parsed_url.netloc == '':
+                    absolute_url = url + parsed_url.path
+                    # print(absolute_url)
+                    urls.append(absolute_url)
 
-                    # urls.append(relative_url)
-                    # if defrag != relative_url:
-                    #     print(defrag, relative_url)
 
                 # urls.append(relative_url)
-
+            urls = list(dict.fromkeys(urls))
             print(urls)
             print(len(urls))
 
             # print(etree.tostring(tree))
             print("\n\n\n")
             # return urls
+            return list()
             return urls
         else:
             print(url, resp.error)
