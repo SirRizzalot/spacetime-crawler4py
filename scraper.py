@@ -1,4 +1,6 @@
 import re
+import os
+import urllib.robotparser as urobot
 from lxml import html
 from urllib.parse import urlparse
 
@@ -23,6 +25,11 @@ stop_words = ["a", "about", "above", "after", "again", "against", "all", "am", "
             "your", "yours", "yourself", "yourselves"]
 
 longest_page = {"url":"", "word-count": 0}
+disallowed_paths = {"https://www.ics.uci.edu": {},
+                    "https://www.cs.uci.edu": {},
+                    "https://www.informatics.uci.edu": {},
+                    "https://www.stat.uci.edu": {}
+                    }
 
 def scraper(url:str, resp) -> list:
     links = extract_next_links(url, resp)
@@ -43,6 +50,21 @@ def extract_next_links(url, resp):
         tree = html.fromstring(resp.raw_response.content)
         line_list = tree.xpath("//div//text()")
         # grabs item within <p> </p>
+
+        #if url is the domain url, then parse robots.txt
+        if url in disallowed_paths:
+            curl_url = "curl " + resp.url + "/robots.txt"
+            result = os.popen(curl_url).read()
+            result_data_set = {"Disallowed":[], "Allowed":[]}
+
+            for line in result.split("\n"):
+                if line.startswith('Allow'):    # this is for allowed url
+                    result_data_set["Allowed"].append(line.split(': ')[1].split(' ')[0])
+                elif line.startswith('Disallow'):    # this is for disallowed url
+                    result_data_set["Disallowed"].append(line.split(': ')[1].split(' ')[0])
+        
+            disallowed_paths[resp.url] = result_data_set
+        
 
         words = ' '.join(line_list)
         match = re.findall('[0-9]+|(?:[a-zA-Z0-9]{1,}[a-zA-Z0-9]+(?:\'s|\.d){0,1})', words.lower())
@@ -73,6 +95,9 @@ def extract_next_links(url, resp):
 
 
 def report(): 
+    #FOR TESTING ONLY!!!!!!!!!!!!!!
+    print(disallowed_paths)
+    
     # initialize list variables
     # a dictionary for all words found; containing words as key and their frequency as value in a list.
     frequented = defaultdict(int)
