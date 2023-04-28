@@ -25,11 +25,24 @@ stop_words = ["a", "about", "above", "after", "again", "against", "all", "am", "
             "your", "yours", "yourself", "yourselves"]
 
 longest_page = {"url":"", "word-count": 0}
-disallowed_paths = {"https://www.ics.uci.edu": {},
-                    "https://www.cs.uci.edu": {},
-                    "https://www.informatics.uci.edu": {},
-                    "https://www.stat.uci.edu": {}
-                    }
+domain_list = ["www.ics.uci.edu", "www.cs.uci.edu", "www.informatics.uci.edu", "www.stat.uci.edu"]
+disallowed_paths = {}
+
+
+#then parse robots.txt of all domains
+for url in domain_list:
+    curl_url = "curl https://" + url + "/robots.txt"
+    result = os.popen(curl_url).read()
+    result_data_set = {"Disallowed":[], "Allowed":[]}
+
+    for line in result.split("\n"):
+        if line.startswith('Allow'):    # this is for allowed url
+            result_data_set["Allowed"].append(line.split(': ')[1].split(' ')[0])
+        elif line.startswith('Disallow'):    # this is for disallowed url
+            result_data_set["Disallowed"].append(line.split(': ')[1].split(' ')[0])
+
+    disallowed_paths[url] = result_data_set
+
 
 def scraper(url:str, resp) -> list:
     links = extract_next_links(url, resp)
@@ -51,21 +64,14 @@ def extract_next_links(url, resp):
         line_list = tree.xpath("//div//text()")
         # grabs item within <p> </p>
 
-        #if url is the domain url, then parse robots.txt
-        if url in disallowed_paths:
-            curl_url = "curl " + resp.url + "/robots.txt"
-            result = os.popen(curl_url).read()
-            result_data_set = {"Disallowed":[], "Allowed":[]}
 
-            for line in result.split("\n"):
-                if line.startswith('Allow'):    # this is for allowed url
-                    result_data_set["Allowed"].append(line.split(': ')[1].split(' ')[0])
-                elif line.startswith('Disallow'):    # this is for disallowed url
-                    result_data_set["Disallowed"].append(line.split(': ')[1].split(' ')[0])
         
-            disallowed_paths[resp.url] = result_data_set
+        # full_domain = '{uri.scheme}://{uri.netloc}/'.format(uri=parsed_uri)
+        # if (urlparse(url)).path in disallowed_paths[url_domain]["Allowed"]:
+        #     print("allowed")
+        # elif (urlparse(url)).path in disallowed_paths[url_domain]["Disallow"]:
+        #     print("disallowed")
         
-
         words = ' '.join(line_list)
         match = re.findall('[0-9]+|(?:[a-zA-Z0-9]{1,}[a-zA-Z0-9]+(?:\'s|\.d){0,1})', words.lower())
         # regex for including that's and ph.d as it is:
@@ -97,7 +103,7 @@ def extract_next_links(url, resp):
 def report(): 
     #FOR TESTING ONLY!!!!!!!!!!!!!!
     print(disallowed_paths)
-    
+
     # initialize list variables
     # a dictionary for all words found; containing words as key and their frequency as value in a list.
     frequented = defaultdict(int)
