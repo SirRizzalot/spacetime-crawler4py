@@ -42,7 +42,7 @@ def extract_next_links(url, resp):
     try:
         tree = html.fromstring(resp.raw_response.content)
         line_list = tree.xpath("//div//text()")
-        # grabs item within <div> </div>
+        # grabs item within <p> </p>
 
         words = ' '.join(line_list)
         match = re.findall('[0-9]+|(?:[a-zA-Z0-9]{1,}[a-zA-Z0-9]+(?:\'s|\.d){0,1})', words.lower())
