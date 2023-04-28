@@ -4,22 +4,21 @@ from io import StringIO
 from urllib.parse import urlparse, urlunparse, urldefrag, urljoin
 
 
+
+
 from utils.download import download
 
 # dictionary to contain subdomains of ics.uci.edu and number of unique pages in that subdomain
 subdomain_pages = {}
-unique_urls = list()
+set_subdomain_pages = set()
 
 def scraper(url:str, resp) -> list:
     links = extract_next_links(url, resp)
     # print([is_valid(link) for link in links])
-    #print(len(links))
-    if len(links) > 0:
-        print("UU ", unique_urls)
-        return [link for link in links if is_valid(link)]
-    
-    return links
 
+    if len(links) > 0:
+        return [link for link in links if is_valid(link)]
+    return links
 
 def extract_next_links(url, resp):
     # Implementation required.
@@ -46,47 +45,67 @@ def extract_next_links(url, resp):
             for link in tree.xpath('//a | //img'):
                 relative_url = link.get('href') or link.get('src')
                 # relativeurl_src = link.get('src')
+                # print(relativeurl_src)
 
 
 
-                    # print(relativeurl_src)
                 # statement to ignore #
                 if relative_url and relative_url.startswith('#'):
                     # print(relative_url)
                     continue
+
+
+
                 parsed_url = urlparse(relative_url)
-                # if url == 'https://www.ics.uci.edu':
-                #     print(relative_url, "HERE", parsed_url.netloc, "PARSED", parsed_url)
-                # checking to see if hyperlink has required properties of URLs
-                #if parsed_url.scheme and parsed_url.netloc:
-                    # removing fragments from URL
-                    
-                #    urls.append(defrag)
+
                 # converting relative urls to absolute URL
-                #if parsed_url.netloc == '':
-                #print("url ", url + " parsed_url ", parsed_url.path)
-                absolute_url = url + parsed_url.path
-                absolute_url, _ = urldefrag(absolute_url)
+                if parsed_url.netloc == '' and parsed_url.scheme == '':
+                    # print(parsed_url)
+                    relative_url = url + parsed_url.path
+                    parsed_url = urlparse(relative_url)
+                    # print(parsed_url)
+
+                # checking to see if hyperlink has required properties of URLs
+                if parsed_url.scheme and parsed_url.netloc:
+                    absolute_url = url + parsed_url.path
+                    absolute_url, _ = urldefrag(absolute_url)
                 #print("AU ", absolute_url)
                 urls.append(absolute_url)
+
+                # converting relative urls to absolute URL
+                # if parsed_url.netloc == '' and parsed_url.scheme == '':
+                #     # print(parsed_url)
+                #     absolute_url = url + parsed_url.path
+                #     parsed_url = urlparse(absolute_url)
+                #     if "ics.uci.edu" in absolute_url:
+                #         print("ABOSLUTEURL", absolute_url,  urlparse(absolute_url))
+                #         if absolute_url in subdomain_pages:
+                #             subdomain_pages[absolute_url] = subdomain_pages.get(absolute_url) + 1
+                #         else:
+                #             subdomain_pages[absolute_url] = 1
+                #     urls.append(absolute_url)
 
 
                 # urls.append(relative_url)
             urls = list(dict.fromkeys(urls))
-            #print("URLS ", urls)
-            #print(len(urls))
+            print(urls)
+            print(len(urls))
+            print(set_subdomain_pages)
+            # subdomain_pages = sorted(subdomain_pages.items(), key = lambda x: (x[1],x[0]))
+
+            print(subdomain_pages)
 
             # print(etree.tostring(tree))
             print("\n\n\n")
             # return urls
-            #return list()
+            # return list()
             return urls
         else:
             print(url, resp.error)
             return list()
     except:
         print("TRIGGERED", url, resp.status)
-        return list()
+        pass
 
 
 
@@ -95,12 +114,8 @@ def is_valid(url):
     # If you decide to crawl it, return True; otherwise return False.
     # There are already some conditions that return False.
     try:
-        
+
         parsed = urlparse(url)
-        if url not in unique_urls:
-            unique_urls.append(url)
-        else:
-            return False
         if parsed.scheme not in set(["http", "https"]):
             return False
         if not re.match(
@@ -108,6 +123,7 @@ def is_valid(url):
             return False
         #  url = https://www.ics.uci.edu
         # hostname = www.ics.cui.edu
+
         return not re.match(
             r".*\.(css|js|bmp|gif|jpe?g|ico"
             + r"|png|tiff?|mid|mp2|mp3|mp4"
@@ -125,4 +141,3 @@ def is_valid(url):
 
 if __name__ == "__main__":
     extract_next_links("https://webscraper.io/test-sites/e-commerce/allinone", download("https://webscraper.io/test-sites/e-commerce/allinone"))
-    #print("UNIQUE_URLS", unique_urls)
