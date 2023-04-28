@@ -4,11 +4,13 @@ from io import StringIO
 from urllib.parse import urlparse, urlunparse, urldefrag, urljoin
 
 
+
+
 from utils.download import download
 
 # dictionary to contain subdomains of ics.uci.edu and number of unique pages in that subdomain
 subdomain_pages = {}
-
+set_subdomain_pages = set()
 
 def scraper(url:str, resp) -> list:
     links = extract_next_links(url, resp)
@@ -43,38 +45,72 @@ def extract_next_links(url, resp):
             for link in tree.xpath('//a | //img'):
                 relative_url = link.get('href') or link.get('src')
                 # relativeurl_src = link.get('src')
+                # print(relativeurl_src)
 
 
 
-                    # print(relativeurl_src)
                 # statement to ignore #
                 if relative_url and relative_url.startswith('#'):
                     # print(relative_url)
                     continue
+
+
+
                 parsed_url = urlparse(relative_url)
-                # if url == 'https://www.ics.uci.edu':
-                #     print(relative_url, "HERE", parsed_url.netloc, "PARSED", parsed_url)
+
+                # converting relative urls to absolute URL
+                if parsed_url.netloc == '' and parsed_url.scheme == '':
+                    # print(parsed_url)
+                    relative_url = url + parsed_url.path
+                    parsed_url = urlparse(relative_url)
+                    # print(parsed_url)
+
                 # checking to see if hyperlink has required properties of URLs
                 if parsed_url.scheme and parsed_url.netloc:
                     # removing fragments from URL
                     defrag, _ = urldefrag(relative_url)
+                    # looking for subdomains of the domain ics.uci.edu
+                    if "ics.uci.edu" in parsed_url.netloc:
+                        split_list = parsed_url.netloc.split(".")
+                        # print("HERE", split_list, split_list[1] == 'ics', split_list[2] == 'uci', split_list[3] == 'edu')
+                        if split_list[1] == 'ics' and split_list[2] == 'uci' and split_list[3] == 'edu':
+                            # print(split_list, "TRUE")
+                            if defrag not in set_subdomain_pages:
+                                if split_list[0] in subdomain_pages:
+                                    subdomain_pages[split_list[0]] = subdomain_pages.get(split_list[0]) + 1
+                                else:
+                                    subdomain_pages[split_list[0]] = 1
+                            set_subdomain_pages.add(defrag)
+                        # print(defrag, "NETLOC", parsed_url.netloc, "SPLIT", parsed_url.netloc.split(".")[0])
                     urls.append(defrag)
+
                 # converting relative urls to absolute URL
-                if parsed_url.netloc == '':
-                    absolute_url = url + parsed_url.path
-                    # print(absolute_url)
-                    urls.append(absolute_url)
+                # if parsed_url.netloc == '' and parsed_url.scheme == '':
+                #     # print(parsed_url)
+                #     absolute_url = url + parsed_url.path
+                #     parsed_url = urlparse(absolute_url)
+                #     if "ics.uci.edu" in absolute_url:
+                #         print("ABOSLUTEURL", absolute_url,  urlparse(absolute_url))
+                #         if absolute_url in subdomain_pages:
+                #             subdomain_pages[absolute_url] = subdomain_pages.get(absolute_url) + 1
+                #         else:
+                #             subdomain_pages[absolute_url] = 1
+                #     urls.append(absolute_url)
 
 
                 # urls.append(relative_url)
             urls = list(dict.fromkeys(urls))
-            print(urls)
-            print(len(urls))
+            # print(urls)
+            # print(len(urls))
+            print(set_subdomain_pages)
+            # subdomain_pages = sorted(subdomain_pages.items(), key = lambda x: (x[1],x[0]))
+
+            print(subdomain_pages)
 
             # print(etree.tostring(tree))
             print("\n\n\n")
             # return urls
-            return list()
+            # return list()
             return urls
         else:
             print(url, resp.error)
