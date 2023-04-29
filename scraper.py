@@ -59,7 +59,7 @@ def similarity(mod3:{int})->bool:
         intersect = mod3.intersection(val)
         union = mod3.union(val)
         similarity = len(intersect) / len(union)
-        if similarity == 0:
+        if similarity == 1:
             return True
     return False
 
