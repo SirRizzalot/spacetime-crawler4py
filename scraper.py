@@ -81,7 +81,8 @@ def extract_next_links(url, resp):
 
 
             html_tree = html.fromstring(resp.raw_response.content)
-            line_list = html_tree.xpath("//div//text()")
+            line_list = html_tree.xpath('//body//*[not(self::script)]//text()')
+
             # grabs item within <p> </p>
 
             words = ' '.join(line_list)
@@ -90,47 +91,38 @@ def extract_next_links(url, resp):
             #                   [0-9]+|(?:[a-zA-Z0-9]{1,}[a-zA-Z0-9]+(?:\'s|\.d){0,1})
             # regext for spliting it:
             #                   [0-9]+|(?:[a-zA-Z0-9]{1,}[a-zA-Z0-9]+)
-
-            # print (append) all words to the txt file for word count later on
-            f1 = open("word_list.txt", "a", encoding="UTF-8")
-            for each_word in match:
-                print(each_word, file=f1)
-            f1.close()
-
-            f2 = open("word_list2.txt", "a", encoding="UTF-8")
-            for each_word in discovered_set_pages:
-                print(each_word, file=f2)
-            f2.close()
-
-            f3 = open("word_list3.txt", "a", encoding="UTF-8")
-            for each_word in set_subdomain_pages:
-                print(each_word, file=f3)
-            f3.close()
+            if len(match) > 0:
 
 
+                # print (append) all words to the txt file for word count later on
+                f1 = open("word_list.txt", "a", encoding="UTF-8")
+                for each_word in match:
+                    print(each_word, file=f1)
+                f1.close()
 
-            # using finger-print method to detect similarity
-            three_gram = [' '.join(match[i:i + 3]) for i in range(len(match) - 2)]
+                # using finger-print method to detect similarity
+                three_gram = [' '.join(match[i:i + 3]) for i in range(len(match) - 2)]
 
-            three_gram_hash_values = [sum(ord(t) for t in i) for i in three_gram]
-            # print("got this far")
-            mod3 = {i for i in three_gram_hash_values if i % 4 == 0}
+                three_gram_hash_values = [sum(ord(t) for t in i) for i in three_gram]
+                # print("got this far")
+                mod3 = {i for i in three_gram_hash_values if i % 4 == 0 or i % 5 == 0}
+                # if url == "https://www.ics.uci.edu/~yeouln":
+                #     print(words)
+                if similarity(mod3):
+                    return list()
 
-            if similarity(mod3):
-                return list()
-
-            finger_prints[url] = mod3
+                finger_prints[url] = mod3
 
 
 
 
 
-            # update page's word_count to len of word list
-            word_count = len(match)
-            # if current page's word count > the one in longest_page, update longest_page to wordcount and url of current page
-            if word_count > longest_page["word-count"]:
-                longest_page["url"] = resp.url
-                longest_page["word-count"] = word_count
+                # update page's word_count to len of word list
+                word_count = len(match)
+                # if current page's word count > the one in longest_page, update longest_page to wordcount and url of current page
+                if word_count > longest_page["word-count"]:
+                    longest_page["url"] = resp.url
+                    longest_page["word-count"] = word_count
 
             ### URL retrieval
             parser = etree.HTMLParser()
@@ -156,7 +148,9 @@ def extract_next_links(url, resp):
                 # converting relative urls to absolute URL
                 if parsed_url.netloc == '' and parsed_url.scheme == '':
                     # print(parsed_url)
-                    relative_url = url + parsed_url.path
+                    parsed_url = urlparse(url)
+                    net_loc = parsed_url.netloc
+                    relative_url = net_loc + parsed_url.path
                     parsed_url = urlparse(relative_url)
                     # print(parsed_url)
 
@@ -178,6 +172,11 @@ def extract_next_links(url, resp):
                                 else:
                                     subdomain_pages[split_list[0]] = 1
                             set_subdomain_pages.add(defrag)
+
+                            f3 = open("word_list3.txt", "a", encoding="UTF-8")
+                            # for each_word in set_subdomain_pages:
+                            print(defrag, file=f3)
+                            f3.close()
                         # print(defrag, "NETLOC", parsed_url.netloc, "SPLIT", parsed_url.netloc.split(".")[0])
                     urls.append(defrag)
 
@@ -213,7 +212,8 @@ def extract_next_links(url, resp):
             # print(url, resp.error)
             return list()
     except Exception as e:
-        print(e)
+        print("e", e)
+        print("words", words, )
         print("error")
 
 
@@ -240,7 +240,7 @@ def report():
     # extract the first 50 key-value pairs
     most_common_words = list()
     cur_word = 0
-    while len(most_common_words) < 50:
+    while len(most_common_words) < 50 and len(sorted_frequented) != 0:
         if sorted_frequented[cur_word][0] not in stop_words:
             most_common_words.append(sorted_frequented[cur_word])
         cur_word+=1
@@ -269,6 +269,10 @@ def is_valid(url):
         return False
     else:
         discovered_set_pages.add(url)
+        f2 = open("word_list2.txt", "a", encoding="UTF-8")
+        # for each_word in discovered_set_pages:
+        print(url, file=f2)
+        f2.close()
     try:
         parsed = urlparse(url)
         domain_name = re.findall(
