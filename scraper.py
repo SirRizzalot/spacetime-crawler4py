@@ -27,6 +27,7 @@ stop_words = ["a", "about", "above", "after", "again", "against", "all", "am", "
 longest_page = {"url":"", "word-count": 0}
 domain_list = ["www.ics.uci.edu", "www.cs.uci.edu", "www.informatics.uci.edu", "www.stat.uci.edu"]
 disallowed_paths = {}
+finger_prints = {}
 
 
 #then parse robots.txt of all domains
@@ -47,6 +48,15 @@ for url in domain_list:
 def scraper(url:str, resp) -> list:
     links = extract_next_links(url, resp)
     return [link for link in links if is_valid(link)]
+
+def similarity(mod3:{int})->bool:
+    for (url, val) in finger_prints.items():
+        intersect = mod3.intersection(val)
+        union = mod3.union(val)
+        similarity = len(intersect) / len(union)
+        if similarity == 0:
+            return True
+    return False
 
 def extract_next_links(url, resp):
     # Implementation required.
@@ -76,6 +86,16 @@ def extract_next_links(url, resp):
         for each_word in match:
             print(each_word, file=f1)
         f1.close()
+
+        # using finger-print method to detect similarity
+        three_gram = [' '.join(match[i:i + 3]) for i in range(len(match) - 2)]
+        three_gram_hash_values = [sum(ord(t) for t in i) for i in three_gram]
+        mod3 = {i for i in three_gram if i % 4 == 0}
+
+        if similarity(mod3):
+            return list()
+
+        finger_prints[url] = mod3
 
         # print(match)
 
