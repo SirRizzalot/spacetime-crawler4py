@@ -11,7 +11,7 @@ from utils.download import download
 # dictionary to contain subdomains of ics.uci.edu and number of unique pages in that subdomain
 subdomain_pages = {}
 set_subdomain_pages = set()
-
+unique_urls = []
 def scraper(url:str, resp) -> list:
     links = extract_next_links(url, resp)
     # print([is_valid(link) for link in links])
@@ -67,10 +67,22 @@ def extract_next_links(url, resp):
 
                 # checking to see if hyperlink has required properties of URLs
                 if parsed_url.scheme and parsed_url.netloc:
-                    absolute_url = url + parsed_url.path
-                    absolute_url, _ = urldefrag(absolute_url)
-                #print("AU ", absolute_url)
-                urls.append(absolute_url)
+                    # removing fragments from URL
+                    defrag, _ = urldefrag(relative_url)
+                    # looking for subdomains of the domain ics.uci.edu
+                    if "ics.uci.edu" in parsed_url.netloc:
+                        split_list = parsed_url.netloc.split(".")
+                        # print("HERE", split_list, split_list[1] == 'ics', split_list[2] == 'uci', split_list[3] == 'edu')
+                        if split_list[1] == 'ics' and split_list[2] == 'uci' and split_list[3] == 'edu':
+                            # print(split_list, "TRUE")
+                            if defrag not in set_subdomain_pages:
+                                if split_list[0] in subdomain_pages:
+                                    subdomain_pages[split_list[0]] = subdomain_pages.get(split_list[0]) + 1
+                                else:
+                                    subdomain_pages[split_list[0]] = 1
+                            set_subdomain_pages.add(defrag)
+                        # print(defrag, "NETLOC", parsed_url.netloc, "SPLIT", parsed_url.netloc.split(".")[0])
+                    urls.append(defrag)
 
                 # converting relative urls to absolute URL
                 # if parsed_url.netloc == '' and parsed_url.scheme == '':
@@ -89,19 +101,22 @@ def extract_next_links(url, resp):
                 # urls.append(relative_url)
             urls = list(dict.fromkeys(urls))
             print(urls)
-            print(len(urls))
-            print(set_subdomain_pages)
+            url_set = set(urls)
+            print(len(list(url_set)))
+            #print(len(urls))
+            #print(set_subdomain_pages)
             # subdomain_pages = sorted(subdomain_pages.items(), key = lambda x: (x[1],x[0]))
 
-            print(subdomain_pages)
+            #print(subdomain_pages)
 
             # print(etree.tostring(tree))
             print("\n\n\n")
             # return urls
-            # return list()
-            return urls
+            return list()
+            #return urls
         else:
-            print(url, resp.error)
+            print("404 HERE ", url, resp.error)
+            #return "HERE"
             return list()
     except:
         print("TRIGGERED", url, resp.status)
@@ -116,6 +131,10 @@ def is_valid(url):
     try:
 
         parsed = urlparse(url)
+        if url not in unique_urls:
+            unique_urls.append(url)
+        else:
+            return False
         if parsed.scheme not in set(["http", "https"]):
             return False
         if not re.match(
