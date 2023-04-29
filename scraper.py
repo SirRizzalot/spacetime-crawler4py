@@ -96,6 +96,11 @@ def extract_next_links(url, resp):
                 print(each_word, file=f1)
             f1.close()
 
+            f2 = open("word_list2.txt", "a", encoding="UTF-8")
+            for each_word in set_subdomain_pages:
+                print(each_word, file=f2)
+            f2.close()
+
 
 
             # using finger-print method to detect similarity
