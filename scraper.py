@@ -1,8 +1,9 @@
 import re
 import os
-import urllib.robotparser as urobot
-from lxml import html
-from urllib.parse import urlparse
+from lxml import html, etree
+from urllib.parse import urlparse, urlunparse, urldefrag, urljoin
+
+
 
 from utils.download import download
 from collections import defaultdict
@@ -44,10 +45,17 @@ for url in domain_list:
 
     disallowed_paths[url] = result_data_set
 
+# dictionary to contain subdomains of ics.uci.edu and number of unique pages in that subdomain
+subdomain_pages = {}
+set_subdomain_pages = set()
 
 def scraper(url:str, resp) -> list:
     links = extract_next_links(url, resp)
-    return [link for link in links if is_valid(link)]
+    # print([is_valid(link) for link in links])
+
+    if len(links) > 0:
+        return [link for link in links if is_valid(link)]
+    return links
 
 def similarity(mod3:{int})->bool:
     for (url, val) in finger_prints.items():
@@ -68,46 +76,127 @@ def extract_next_links(url, resp):
     #         resp.raw_response.url: the url, again
     #         resp.raw_response.content: the content of the page!
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
-
+    urls = []
     try:
-        tree = html.fromstring(resp.raw_response.content)
-        line_list = tree.xpath("//div//text()")
-        # grabs item within <p> </p>
-        
-        words = ' '.join(line_list)
-        match = re.findall('[0-9]+|(?:[a-zA-Z0-9]{1,}[a-zA-Z0-9]+(?:\'s|\.d){0,1})', words.lower())
-        # regex for including that's and ph.d as it is:
-        #                   [0-9]+|(?:[a-zA-Z0-9]{1,}[a-zA-Z0-9]+(?:\'s|\.d){0,1})
-        #regext for spliting it:
-        #                   [0-9]+|(?:[a-zA-Z0-9]{1,}[a-zA-Z0-9]+)
+        if resp.status == 200:
 
-        # print (append) all words to the txt file for word count later on
-        f1 = open("word_list.txt", "a", encoding="UTF-8")
-        for each_word in match:
-            print(each_word, file=f1)
-        f1.close()
+            ### content parsing
 
-        # using finger-print method to detect similarity
-        three_gram = [' '.join(match[i:i + 3]) for i in range(len(match) - 2)]
-        three_gram_hash_values = [sum(ord(t) for t in i) for i in three_gram]
-        mod3 = {i for i in three_gram if i % 4 == 0}
 
-        if similarity(mod3):
+            tree = html.fromstring(resp.raw_response.content)
+            line_list = tree.xpath("//div//text()")
+            # grabs item within <p> </p>
+
+            words = ' '.join(line_list)
+            match = re.findall('[0-9]+|(?:[a-zA-Z0-9]{1,}[a-zA-Z0-9]+(?:\'s|\.d){0,1})', words.lower())
+            # regex for including that's and ph.d as it is:
+            #                   [0-9]+|(?:[a-zA-Z0-9]{1,}[a-zA-Z0-9]+(?:\'s|\.d){0,1})
+            # regext for spliting it:
+            #                   [0-9]+|(?:[a-zA-Z0-9]{1,}[a-zA-Z0-9]+)
+
+            # print (append) all words to the txt file for word count later on
+            f1 = open("word_list.txt", "a", encoding="UTF-8")
+            for each_word in match:
+                print(each_word, file=f1)
+            f1.close()
+
+            # using finger-print method to detect similarity
+            three_gram = [' '.join(match[i:i + 3]) for i in range(len(match) - 2)]
+            three_gram_hash_values = [sum(ord(t) for t in i) for i in three_gram]
+            mod3 = {i for i in three_gram if i % 4 == 0}
+
+            if similarity(mod3):
+                return list()
+
+            finger_prints[url] = mod3
+
+
+            ### URL retrieval
+
+
+            # update page's word_count to len of word list
+            word_count = len(match)
+            # if current page's word count > the one in longest_page, update longest_page to wordcount and url of current page
+            if word_count > longest_page["word-count"]:
+                longest_page["url"] = resp.url
+                longest_page["word-count"] = word_count
+
+            parser = etree.HTMLParser()
+            tree = etree.HTML(resp.raw_response.content, parser)
+            # tree = etree.parse(StringIO(resp.raw_response.content), root)
+            # result = etree.tostring(tree.getroot(), pretty_print=True, method="html")
+            # parsed_url = urlparse(etree.tostring(tree))
+
+            # getting only the hyperlinks
+            for link in tree.xpath('//a | //img'):
+                relative_url = link.get('href') or link.get('src')
+                # relativeurl_src = link.get('src')
+                # print(relativeurl_src)
+
+                # statement to ignore #
+                if relative_url and relative_url.startswith('#'):
+                    # print(relative_url)
+                    continue
+
+                parsed_url = urlparse(relative_url)
+
+                # converting relative urls to absolute URL
+                if parsed_url.netloc == '' and parsed_url.scheme == '':
+                    # print(parsed_url)
+                    relative_url = url + parsed_url.path
+                    parsed_url = urlparse(relative_url)
+                    # print(parsed_url)
+
+                # checking to see if hyperlink has required properties of URLs
+                if parsed_url.scheme and parsed_url.netloc:
+                    # removing fragments from URL
+                    defrag, _ = urldefrag(relative_url)
+                    # looking for subdomains of the domain ics.uci.edu
+                    if "ics.uci.edu" in parsed_url.netloc:
+                        split_list = parsed_url.netloc.split(".")
+                        # print("HERE", split_list, split_list[1] == 'ics', split_list[2] == 'uci', split_list[3] == 'edu')
+                        if split_list[1] == 'ics' and split_list[2] == 'uci' and split_list[3] == 'edu':
+                            # print(split_list, "TRUE")
+                            if defrag not in set_subdomain_pages:
+                                if split_list[0] in subdomain_pages:
+                                    subdomain_pages[split_list[0]] = subdomain_pages.get(split_list[0]) + 1
+                                else:
+                                    subdomain_pages[split_list[0]] = 1
+                            set_subdomain_pages.add(defrag)
+                        # print(defrag, "NETLOC", parsed_url.netloc, "SPLIT", parsed_url.netloc.split(".")[0])
+                    urls.append(defrag)
+
+                # converting relative urls to absolute URL
+                # if parsed_url.netloc == '' and parsed_url.scheme == '':
+                #     # print(parsed_url)
+                #     absolute_url = url + parsed_url.path
+                #     parsed_url = urlparse(absolute_url)
+                #     if "ics.uci.edu" in absolute_url:
+                #         print("ABOSLUTEURL", absolute_url,  urlparse(absolute_url))
+                #         if absolute_url in subdomain_pages:
+                #             subdomain_pages[absolute_url] = subdomain_pages.get(absolute_url) + 1
+                #         else:
+                #             subdomain_pages[absolute_url] = 1
+                #     urls.append(absolute_url)
+
+                # urls.append(relative_url)
+            urls = list(dict.fromkeys(urls))
+            # print(urls)
+            # print(len(urls))
+            print(set_subdomain_pages)
+            # subdomain_pages = sorted(subdomain_pages.items(), key = lambda x: (x[1],x[0]))
+
+            print(subdomain_pages)
+
+            # print(etree.tostring(tree))
+            print("\n\n\n")
+            # return urls
+            # return list()
+
+            return urls
+        else:
+            print(url, resp.error)
             return list()
-
-        finger_prints[url] = mod3
-
-        # print(match)
-
-        # update page's word_count to len of word list
-        word_count = len(match)
-        # if current page's word count > the one in longest_page, update longest_page to wordcount and url of current page
-        if word_count > longest_page["word-count"]:
-            longest_page["url"] = resp.url
-            longest_page["word-count"] = word_count
-
-
-        return list()
     except:
         print("error")
 
@@ -156,7 +245,6 @@ def report():
 
 
 
-
 def is_valid(url):
     # Decide whether to crawl this url or not.
     # If you decide to crawl it, return True; otherwise return False.
@@ -170,10 +258,11 @@ def is_valid(url):
         if parsed.scheme not in set(["http", "https"]):
             return False
         if not re.match(
-                r"[.+(\.ics\.uci\.edu)|(\.cs\.uci\.edu)|(\.informatics\.uci\.edu)|(\.stat\.uci\.edu).+(\#]", parsed):
+                r".+[(\.ics\.uci\.edu)|(\.cs\.uci\.edu)|(\.informatics\.uci\.edu)|(\.stat\.uci\.edu)]", parsed.netloc):
             return False
         #  url = https://www.ics.uci.edu
         # hostname = www.ics.cui.edu
+
         return not re.match(
             r".*\.(css|js|bmp|gif|jpe?g|ico"
             + r"|png|tiff?|mid|mp2|mp3|mp4"
@@ -184,8 +273,8 @@ def is_valid(url):
             + r"|thmx|mso|arff|rtf|jar|csv"
             + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$", parsed.path.lower())
 
-    except TypeError:
-        print ("TypeError for ", parsed)
+    except:
+        print(parsed)
         raise
 
 
