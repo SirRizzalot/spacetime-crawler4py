@@ -17,6 +17,7 @@ def scraper(url:str, resp) -> list:
     # print([is_valid(link) for link in links])
 
     if len(links) > 0:
+        [print(link) for link in links if is_valid(link)]
         return [link for link in links if is_valid(link)]
     return links
 
@@ -111,11 +112,11 @@ def extract_next_links(url, resp):
 
             # print(etree.tostring(tree))
             print("\n\n\n")
-            # return urls
-            return list()
+            return urls
+            #return list()
             #return urls
         else:
-            print("404 HERE ", url, resp.error)
+            print(url, resp.error)
             #return "HERE"
             return list()
     except:
@@ -137,8 +138,10 @@ def is_valid(url):
             return False
         if parsed.scheme not in set(["http", "https"]):
             return False
-        if not re.match(
-                r".+[(\.ics\.uci\.edu)|(\.cs\.uci\.edu)|(\.informatics\.uci\.edu)|(\.stat\.uci\.edu)]", parsed.netloc):
+        #print("netloc ", parsed.netloc, " ", re.search(r"(\.ics\.uci\.edu)", parsed.netloc))
+        if not re.search(
+                r"((\.ics\.uci\.edu)|(\.cs\.uci\.edu)|(\.informatics\.uci\.edu)|(\.stat\.uci\.edu))", parsed.netloc):
+                
             return False
         #  url = https://www.ics.uci.edu
         # hostname = www.ics.cui.edu
@@ -159,4 +162,6 @@ def is_valid(url):
 
 
 if __name__ == "__main__":
+    #print("TEST")
+    #extract_links("https://www.informatics.uci.edu/very-top-footer-menu-items/people/", download("https://www.informatics.uci.edu/very-top-footer-menu-items/people/"))
     extract_next_links("https://webscraper.io/test-sites/e-commerce/allinone", download("https://webscraper.io/test-sites/e-commerce/allinone"))
