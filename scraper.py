@@ -91,9 +91,7 @@ def extract_next_links(url, resp):
             #                   [0-9]+|(?:[a-zA-Z0-9]{1,}[a-zA-Z0-9]+(?:\'s|\.d){0,1})
             # regext for spliting it:
             #                   [0-9]+|(?:[a-zA-Z0-9]{1,}[a-zA-Z0-9]+)
-            if len(match) > 0:
-
-
+            if len(match) > 0 and match != ['exif', 'ii', 'ducky']:
                 # print (append) all words to the txt file for word count later on
                 f1 = open("word_list.txt", "a", encoding="UTF-8")
                 for each_word in match:
