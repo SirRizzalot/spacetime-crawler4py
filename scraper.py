@@ -63,14 +63,6 @@ def extract_next_links(url, resp):
         tree = html.fromstring(resp.raw_response.content)
         line_list = tree.xpath("//div//text()")
         # grabs item within <p> </p>
-
-
-        
-        # full_domain = '{uri.scheme}://{uri.netloc}/'.format(uri=parsed_uri)
-        # if (urlparse(url)).path in disallowed_paths[url_domain]["Allowed"]:
-        #     print("allowed")
-        # elif (urlparse(url)).path in disallowed_paths[url_domain]["Disallow"]:
-        #     print("disallowed")
         
         words = ' '.join(line_list)
         match = re.findall('[0-9]+|(?:[a-zA-Z0-9]{1,}[a-zA-Z0-9]+(?:\'s|\.d){0,1})', words.lower())
@@ -151,7 +143,10 @@ def is_valid(url):
     # There are already some conditions that return False.
     try:
         parsed = urlparse(url)
-
+        if parsed.path in disallowed_paths[parsed.netloc]["Allowed"]:
+            return True
+        if parsed.path in disallowed_paths[parsed.netloc]["Disallowed"]:
+            return False
         if parsed.scheme not in set(["http", "https"]):
             return False
         if not re.match(
