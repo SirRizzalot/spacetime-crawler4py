@@ -48,6 +48,7 @@ for domain in domain_list:
 # dictionary to contain subdomains of ics.uci.edu and number of unique pages in that subdomain
 subdomain_pages = {}
 set_subdomain_pages = set()
+discovered_set_pages = set()
 
 def scraper(url:str, resp) -> list:
     links = extract_next_links(url, resp)
@@ -97,9 +98,14 @@ def extract_next_links(url, resp):
             f1.close()
 
             f2 = open("word_list2.txt", "a", encoding="UTF-8")
-            for each_word in set_subdomain_pages:
+            for each_word in discovered_set_pages:
                 print(each_word, file=f2)
             f2.close()
+
+            f3 = open("word_list3.txt", "a", encoding="UTF-8")
+            for each_word in set_subdomain_pages:
+                print(each_word, file=f3)
+            f3.close()
 
 
 
@@ -107,7 +113,7 @@ def extract_next_links(url, resp):
             three_gram = [' '.join(match[i:i + 3]) for i in range(len(match) - 2)]
 
             three_gram_hash_values = [sum(ord(t) for t in i) for i in three_gram]
-            print("got this far")
+            # print("got this far")
             mod3 = {i for i in three_gram_hash_values if i % 4 == 0}
 
             if similarity(mod3):
@@ -158,6 +164,8 @@ def extract_next_links(url, resp):
                 if parsed_url.scheme and parsed_url.netloc:
                     # removing fragments from URL
                     defrag, _ = urldefrag(relative_url)
+                    if defrag in set_subdomain_pages:
+                        continue
                     # looking for subdomains of the domain ics.uci.edu
                     if "ics.uci.edu" in parsed_url.netloc:
                         split_list = parsed_url.netloc.split(".")
@@ -190,19 +198,19 @@ def extract_next_links(url, resp):
             urls = list(dict.fromkeys(urls))
             # print(urls)
             # print(len(urls))
-            print(set_subdomain_pages)
+            # print(set_subdomain_pages)
             # subdomain_pages = sorted(subdomain_pages.items(), key = lambda x: (x[1],x[0]))
 
-            print(subdomain_pages)
+            # print(subdomain_pages)
 
             # print(etree.tostring(tree))
-            print("\n\n\n")
+            # print("\n\n\n")
             # return urls
             # return list()
 
             return urls
         else:
-            print(url, resp.error)
+            # print(url, resp.error)
             return list()
     except Exception as e:
         print(e)
@@ -211,7 +219,7 @@ def extract_next_links(url, resp):
 
 def report(): 
     #FOR TESTING ONLY!!!!!!!!!!!!!!
-    print(disallowed_paths)
+    # print(disallowed_paths)
 
     # initialize list variables
     # a dictionary for all words found; containing words as key and their frequency as value in a list.
@@ -257,6 +265,10 @@ def is_valid(url):
     # Decide whether to crawl this url or not.
     # If you decide to crawl it, return True; otherwise return False.
     # There are already some conditions that return False.
+    if url in discovered_set_pages:
+        return False
+    else:
+        discovered_set_pages.add(url)
     try:
         parsed = urlparse(url)
         domain_name = re.findall(
