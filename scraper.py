@@ -26,24 +26,24 @@ stop_words = ["a", "about", "above", "after", "again", "against", "all", "am", "
             "your", "yours", "yourself", "yourselves"]
 
 longest_page = {"url":"", "word-count": 0}
-domain_list = ["www.ics.uci.edu", "www.cs.uci.edu", "www.informatics.uci.edu", "www.stat.uci.edu"]
+domain_list = [".ics.uci.edu", ".cs.uci.edu", ".informatics.uci.edu", ".stat.uci.edu"]
 disallowed_paths = {}
 finger_prints = {}
 
 
 #then parse robots.txt of all domains
-for url in domain_list:
-    curl_url = "curl https://" + url + "/robots.txt"
+for domain in domain_list:
+    curl_url = "curl https://www" + domain + "/robots.txt"
     result = os.popen(curl_url).read()
     result_data_set = {"Disallowed":[], "Allowed":[]}
-
+    print(result)
     for line in result.split("\n"):
         if line.startswith('Allow'):    # this is for allowed url
             result_data_set["Allowed"].append(line.split(': ')[1].split(' ')[0])
         elif line.startswith('Disallow'):    # this is for disallowed url
             result_data_set["Disallowed"].append(line.split(': ')[1].split(' ')[0])
 
-    disallowed_paths[url] = result_data_set
+    disallowed_paths[domain] = result_data_set
 
 # dictionary to contain subdomains of ics.uci.edu and number of unique pages in that subdomain
 subdomain_pages = {}
@@ -51,11 +51,7 @@ set_subdomain_pages = set()
 
 def scraper(url:str, resp) -> list:
     links = extract_next_links(url, resp)
-    # print([is_valid(link) for link in links])
-
-    if len(links) > 0:
-        return [link for link in links if is_valid(link)]
-    return links
+    return [link for link in links if is_valid(link)]
 
 def similarity(mod3:{int})->bool:
     for (url, val) in finger_prints.items():
@@ -83,8 +79,8 @@ def extract_next_links(url, resp):
             ### content parsing
 
 
-            tree = html.fromstring(resp.raw_response.content)
-            line_list = tree.xpath("//div//text()")
+            html_tree = html.fromstring(resp.raw_response.content)
+            line_list = html_tree.xpath("//div//text()")
             # grabs item within <p> </p>
 
             words = ' '.join(line_list)
@@ -100,10 +96,14 @@ def extract_next_links(url, resp):
                 print(each_word, file=f1)
             f1.close()
 
+
+
             # using finger-print method to detect similarity
             three_gram = [' '.join(match[i:i + 3]) for i in range(len(match) - 2)]
+
             three_gram_hash_values = [sum(ord(t) for t in i) for i in three_gram]
-            mod3 = {i for i in three_gram if i % 4 == 0}
+            print("got this far")
+            mod3 = {i for i in three_gram_hash_values if i % 4 == 0}
 
             if similarity(mod3):
                 return list()
@@ -111,7 +111,7 @@ def extract_next_links(url, resp):
             finger_prints[url] = mod3
 
 
-            ### URL retrieval
+
 
 
             # update page's word_count to len of word list
@@ -121,11 +121,13 @@ def extract_next_links(url, resp):
                 longest_page["url"] = resp.url
                 longest_page["word-count"] = word_count
 
+            ### URL retrieval
             parser = etree.HTMLParser()
             tree = etree.HTML(resp.raw_response.content, parser)
             # tree = etree.parse(StringIO(resp.raw_response.content), root)
             # result = etree.tostring(tree.getroot(), pretty_print=True, method="html")
             # parsed_url = urlparse(etree.tostring(tree))
+
 
             # getting only the hyperlinks
             for link in tree.xpath('//a | //img'):
@@ -197,7 +199,8 @@ def extract_next_links(url, resp):
         else:
             print(url, resp.error)
             return list()
-    except:
+    except Exception as e:
+        print(e)
         print("error")
 
 
@@ -251,15 +254,17 @@ def is_valid(url):
     # There are already some conditions that return False.
     try:
         parsed = urlparse(url)
-        if parsed.path in disallowed_paths[parsed.netloc]["Allowed"]:
-            return True
-        if parsed.path in disallowed_paths[parsed.netloc]["Disallowed"]:
+        domain_name = re.findall(
+                r"(?:\.ics\.uci\.edu)|(?:\.cs\.uci\.edu)|(?:\.informatics\.uci\.edu)|(?:\.stat\.uci\.edu)", parsed.netloc)
+        if not domain_name:
             return False
-        if parsed.scheme not in set(["http", "https"]):
+        if parsed.path in disallowed_paths[domain_name[0]]["Disallowed"]:
+            if parsed.path in disallowed_paths[domain_name[0]]["Allowed"]:
+                return True
             return False
-        if not re.match(
-                r".+[(\.ics\.uci\.edu)|(\.cs\.uci\.edu)|(\.informatics\.uci\.edu)|(\.stat\.uci\.edu)]", parsed.netloc):
+        if parsed.scheme not in ["http", "https"]:
             return False
+
         #  url = https://www.ics.uci.edu
         # hostname = www.ics.cui.edu
 
