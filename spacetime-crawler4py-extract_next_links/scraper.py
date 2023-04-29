@@ -16,9 +16,10 @@ def scraper(url:str, resp) -> list:
     links = extract_next_links(url, resp)
     # print([is_valid(link) for link in links])
 
-    if len(links) > 0:
-        #[print(link) for link in links if is_valid(link)]
-        return [link for link in links if is_valid(link)]
+    if links:
+        if len(links) > 0:
+            #[print(link) for link in links if is_valid(link)]
+            return [link for link in links if is_valid(link)]
     return links
 
 def extract_next_links(url, resp):
@@ -45,33 +46,42 @@ def extract_next_links(url, resp):
             # getting only the hyperlinks
             for link in tree.xpath('//a | //img'):
                 relative_url = link.get('href') or link.get('src')
+                # print("relative: ", relative_url)
+                if not relative_url:
+                    continue
                 # relativeurl_src = link.get('src')
                 # print(relativeurl_src)
-
-
 
                 # statement to ignore #
                 if relative_url and relative_url.startswith('#'):
                     # print(relative_url)
                     continue
 
-
-
                 parsed_url = urlparse(relative_url)
                 original_url = urlparse(url)
-                #problematic area trigger happens
+                print("parsed relative url: ", parsed_url)
+                print("parsed original_url url: ", original_url)
+                #problematic area trigger happens!!!
                 # converting relative urls to absolute URL
+
+                #Check to see if the netloc is equal to '' which means it's the same domain as the original domain
                 if parsed_url.netloc == '':
                     
                     #print("PARSED PATH ", parsed_url.path)
-                    absolute_url =  original_url.netloc + parsed_url.path
-                    print ("A abs", absolute_url)
-                
+                    absolute_url =  original_url.scheme + "://" + (original_url.netloc + "/" + parsed_url.path).replace("//", "/")
+                    # absolute_url =  original_url.netloc + parsed_url.path 
+                    # print ("A ABS URL:", absolute_url)
+                #If the netloc is different, it means it's a different domain so add the new netloc instead of the original one.
                 else:
-                    absolute_url = parsed_url.scheme + "://"+ parsed_url.netloc + parsed_url.path
-                    print ("C abs", absolute_url)
+                    #If the scheme is equal to '', it means the scheme is the same as the original page.
+                    if parsed_url.scheme == '':
+                        absolute_url = original_url.scheme + "://" + (parsed_url.netloc + "/" + parsed_url.path).replace("//", "/")
+                    else:
+                        absolute_url = parsed_url.scheme + "://" + (parsed_url.netloc + "/" + parsed_url.path).replace("//", "/")
+                    # absolute_url = parsed_url.scheme + "://"+ parsed_url.netloc + parsed_url.path
+                    # print ("C ABS URL:", absolute_url)
                 parsed_url = urlparse(absolute_url)
-                print(absolute_url)
+                # print(absolute_url)
 
                 # checking to see if hyperlink has required properties of URLs
                 if parsed_url.scheme and parsed_url.netloc:
@@ -92,26 +102,7 @@ def extract_next_links(url, resp):
                         # print(defrag, "NETLOC", parsed_url.netloc, "SPLIT", parsed_url.netloc.split(".")[0])
                     urls.append(defrag)
 
-                # converting relative urls to absolute URL
-                # if parsed_url.netloc == '' and parsed_url.scheme == '':
-                #     # print(parsed_url)
-                #     absolute_url = url + parsed_url.path
-                #     parsed_url = urlparse(absolute_url)
-                #     if "ics.uci.edu" in absolute_url:
-                #         print("ABOSLUTEURL", absolute_url,  urlparse(absolute_url))
-                #         if absolute_url in subdomain_pages:
-                #             subdomain_pages[absolute_url] = subdomain_pages.get(absolute_url) + 1
-                #         else:
-                #             subdomain_pages[absolute_url] = 1
-                #     urls.append(absolute_url)
-
-
-                # urls.append(relative_url)
             urls = list(dict.fromkeys(urls))
-            #print(urls)
-            url_set = set(urls)
-            #print(len(list(url_set)))
-            print("URL ", urls)
             #print(set_subdomain_pages)
             # subdomain_pages = sorted(subdomain_pages.items(), key = lambda x: (x[1],x[0]))
 
@@ -129,8 +120,6 @@ def extract_next_links(url, resp):
     except:
         print("TRIGGERED", url, resp.status)
         pass
-
-
 
 def is_valid(url):
     # Decide whether to crawl this url or not. 
