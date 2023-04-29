@@ -17,7 +17,7 @@ def scraper(url:str, resp) -> list:
     # print([is_valid(link) for link in links])
 
     if len(links) > 0:
-        [print(link) for link in links if is_valid(link)]
+        #[print(link) for link in links if is_valid(link)]
         return [link for link in links if is_valid(link)]
     return links
 
@@ -58,18 +58,25 @@ def extract_next_links(url, resp):
 
 
                 parsed_url = urlparse(relative_url)
-
+                original_url = urlparse(url)
+                #problematic area trigger happens
                 # converting relative urls to absolute URL
-                if parsed_url.netloc == '' and parsed_url.scheme == '':
-                    # print(parsed_url)
-                    relative_url = url + parsed_url.path
-                    parsed_url = urlparse(relative_url)
-                    # print(parsed_url)
+                if parsed_url.netloc == '':
+                    
+                    #print("PARSED PATH ", parsed_url.path)
+                    absolute_url =  original_url.netloc + parsed_url.path
+                    print ("A abs", absolute_url)
+                
+                else:
+                    absolute_url = parsed_url.scheme + "://"+ parsed_url.netloc + parsed_url.path
+                    print ("C abs", absolute_url)
+                parsed_url = urlparse(absolute_url)
+                print(absolute_url)
 
                 # checking to see if hyperlink has required properties of URLs
                 if parsed_url.scheme and parsed_url.netloc:
                     # removing fragments from URL
-                    defrag, _ = urldefrag(relative_url)
+                    defrag, _ = urldefrag(absolute_url)
                     # looking for subdomains of the domain ics.uci.edu
                     if "ics.uci.edu" in parsed_url.netloc:
                         split_list = parsed_url.netloc.split(".")
@@ -101,10 +108,10 @@ def extract_next_links(url, resp):
 
                 # urls.append(relative_url)
             urls = list(dict.fromkeys(urls))
-            print(urls)
+            #print(urls)
             url_set = set(urls)
-            print(len(list(url_set)))
-            #print(len(urls))
+            #print(len(list(url_set)))
+            print("URL ", urls)
             #print(set_subdomain_pages)
             # subdomain_pages = sorted(subdomain_pages.items(), key = lambda x: (x[1],x[0]))
 
@@ -132,6 +139,7 @@ def is_valid(url):
     try:
 
         parsed = urlparse(url)
+        print("is valid ", url not in unique_urls, " ", url)
         if url not in unique_urls:
             unique_urls.append(url)
         else:
