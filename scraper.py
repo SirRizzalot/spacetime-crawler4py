@@ -76,27 +76,27 @@ def extract_next_links(url, resp):
     urls = []
     try:
         if resp.status == 200:
-
+            if url in finger_prints.keys():
+                return list()
             ### content parsing
 
 
             html_tree = html.fromstring(resp.raw_response.content)
-            line_list = html_tree.xpath('//body//*[not(self::script)]//text()')
+            # line_list = html_tree.xpath('//body//*[not(self::script)]//text()')
+            line_list = html_tree.xpath('//body//*[not(self::script or self::style)]/text()')
 
             # grabs item within <p> </p>
 
             words = ' '.join(line_list)
             match = re.findall('[0-9]+|(?:[a-zA-Z0-9]{1,}[a-zA-Z0-9]+(?:\'s|\.d){0,1})', words.lower())
+            # print(match)
             # regex for including that's and ph.d as it is:
             #                   [0-9]+|(?:[a-zA-Z0-9]{1,}[a-zA-Z0-9]+(?:\'s|\.d){0,1})
             # regext for spliting it:
             #                   [0-9]+|(?:[a-zA-Z0-9]{1,}[a-zA-Z0-9]+)
             if len(match) > 0 and match != ['exif', 'ii', 'ducky']:
-                # print (append) all words to the txt file for word count later on
-                f1 = open("word_list.txt", "a", encoding="UTF-8")
-                for each_word in match:
-                    print(each_word, file=f1)
-                f1.close()
+
+
 
                 # using finger-print method to detect similarity
                 three_gram = [' '.join(match[i:i + 3]) for i in range(len(match) - 2)]
@@ -104,23 +104,26 @@ def extract_next_links(url, resp):
                 three_gram_hash_values = [sum(ord(t) for t in i) for i in three_gram]
                 # print("got this far")
                 mod3 = {i for i in three_gram_hash_values if i % 4 == 0 or i % 5 == 0}
-                # if url == "https://www.ics.uci.edu/~yeouln":
-                #     print(words)
-                if similarity(mod3):
-                    return list()
-
                 finger_prints[url] = mod3
+                if len(mod3) != 0:
+                    if similarity(mod3):
+                        return list()
+                    # print (append) all words to the txt file for word count later on
+                    f1 = open("word_list.txt", "a", encoding="UTF-8")
+                    for each_word in match:
+                        print(each_word, file=f1)
+                    f1.close()
 
 
 
 
 
-                # update page's word_count to len of word list
-                word_count = len(match)
-                # if current page's word count > the one in longest_page, update longest_page to wordcount and url of current page
-                if word_count > longest_page["word-count"]:
-                    longest_page["url"] = resp.url
-                    longest_page["word-count"] = word_count
+                    # update page's word_count to len of word list
+                    word_count = len(match)
+                    # if current page's word count > the one in longest_page, update longest_page to wordcount and url of current page
+                    if word_count > longest_page["word-count"]:
+                        longest_page["url"] = resp.url
+                        longest_page["word-count"] = word_count
 
             ### URL retrieval
             parser = etree.HTMLParser()
@@ -202,10 +205,9 @@ def extract_next_links(url, resp):
 
             # print(etree.tostring(tree))
             # print("\n\n\n")
-            # return urls
-            # return list()
-
             return urls
+            # return list()
+            # return ["http://www.ics.uci.edu/~shantas/publications/12-Self-stabilizing_End-to-End_Communication.ppsx"]
         else:
             # print(url, resp.error)
             return list()
@@ -286,16 +288,11 @@ def is_valid(url):
 
         #  url = https://www.ics.uci.edu
         # hostname = www.ics.cui.edu
-
+        # print("parsed.path", parsed)
+        if re.match(r".*\.(css|js|bmp|gif|jpe?g|ico|png|tiff?|mid|mp2|mp3|mp4|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf|ppsx|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso|epub|dll|cnf|tgz|sha1|thmx|mso|arff|rtf|jar|csv|rm|smil|wmv|swf|wma|zip|rar|gz)$", parsed.query.lower()):
+            return False
         return not re.match(
-            r".*\.(css|js|bmp|gif|jpe?g|ico"
-            + r"|png|tiff?|mid|mp2|mp3|mp4"
-            + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
-            + r"|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names"
-            + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
-            + r"|epub|dll|cnf|tgz|sha1"
-            + r"|thmx|mso|arff|rtf|jar|csv"
-            + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$", parsed.path.lower())
+            r".*\.(css|js|bmp|gif|jpe?g|ico|png|tiff?|mid|mp2|mp3|mp4|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf|ppsx|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso|epub|dll|cnf|tgz|sha1|thmx|mso|arff|rtf|jar|csv|rm|smil|wmv|swf|wma|zip|rar|gz)$", parsed.path.lower())
 
     except:
         print(parsed)
