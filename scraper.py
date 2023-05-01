@@ -85,11 +85,14 @@ def extract_next_links(url, resp):
         return list()
 
     try:
+        # if redirected
         if resp.status == 301 or resp.status == 302:
             if url in finger_prints.keys():
                 return list()
             urls.append(resp.raw_response.url)
             return urls
+            # make url the url of redirected page
+            #url = resp.raw_response.url
     
         if resp.status == 200:
             if url in finger_prints.keys():
