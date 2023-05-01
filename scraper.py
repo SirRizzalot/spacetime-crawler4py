@@ -75,6 +75,12 @@ def extract_next_links(url, resp):
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
     urls = []
     try:
+        if resp.status == 301 or resp.status == 302:
+            if url in finger_prints.keys():
+                return list()
+            urls.append(resp.raw_response.url)
+            return urls
+    
         if resp.status == 200:
             if url in finger_prints.keys():
                 return list()
