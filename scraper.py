@@ -2,7 +2,7 @@ import re
 import os
 from lxml import html, etree
 from urllib.parse import urlparse, urlunparse, urldefrag, urljoin
-
+import time
 
 
 from utils.download import download
@@ -44,6 +44,8 @@ for domain in domain_list:
             result_data_set["Disallowed"].append(line.split(': ')[1].split(' ')[0])
 
     disallowed_paths[domain] = result_data_set
+    time.sleep(0.5)
+
 
 # dictionary to contain subdomains of ics.uci.edu and number of unique pages in that subdomain
 subdomain_pages = {}
@@ -74,6 +76,14 @@ def extract_next_links(url, resp):
     #         resp.raw_response.content: the content of the page!
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
     urls = []
+    if resp.raw_response is None:
+        word = "Nonetype: " + url
+        f4 = open("error_log.txt", "a", encoding="UTF-8")
+        # for each_word in set_subdomain_pages:
+        print(word, file=f4)
+        f4.close()
+        return list()
+
     try:
         if resp.status == 301 or resp.status == 302:
             if url in finger_prints.keys():
@@ -110,7 +120,7 @@ def extract_next_links(url, resp):
                 three_gram_hash_values = [sum(ord(t) for t in i) for i in three_gram]
                 # print("got this far")
                 mod3 = {i for i in three_gram_hash_values if i % 4 == 0 or i % 5 == 0}
-                finger_prints[url] = mod3
+
                 if len(mod3) != 0:
                     if similarity(mod3):
                         return list()
@@ -124,12 +134,15 @@ def extract_next_links(url, resp):
 
 
 
+
                     # update page's word_count to len of word list
                     word_count = len(match)
                     # if current page's word count > the one in longest_page, update longest_page to wordcount and url of current page
                     if word_count > longest_page["word-count"]:
                         longest_page["url"] = resp.url
                         longest_page["word-count"] = word_count
+
+                finger_prints[url] = mod3
 
             ### URL retrieval
             parser = etree.HTMLParser()
@@ -217,10 +230,20 @@ def extract_next_links(url, resp):
         else:
             # print(url, resp.error)
             return list()
+    except etree.Error as e:
+        word = "ERROR: " + url + " " + "lxml error"
+        f4 = open("error_log.txt", "a", encoding="UTF-8")
+        # for each_word in set_subdomain_pages:
+        print(word, file=f4)
+        f4.close()
+        return list()
     except Exception as e:
-        print("e", e)
-        print("words", words, )
-        print("error")
+        word = "ERROR: " + url + " " + e
+        f4 = open("error_log.txt", "a", encoding="UTF-8")
+        # for each_word in set_subdomain_pages:
+        print(word, file=f4)
+        f4.close()
+        return list()
 
 
 def report(): 
