@@ -55,7 +55,15 @@ discovered_set_pages = set()
 
 def scraper(url:str, resp) -> list:
     links = extract_next_links(url, resp)
-    return [link for link in links if is_valid(link)]
+    valid_links = [link for link in links if is_valid(link)]
+
+    valid_urls = open("valid_urls.txt", "a", encoding="UTF-8")
+    # for each_word in set_subdomain_pages:
+    for i in valid_links:
+        print(i, file=valid_urls)
+    valid_urls.close()
+
+    return valid_links
 
 def similarity(mod3:{int})->bool:
     for (url, val) in finger_prints.items():
@@ -65,6 +73,9 @@ def similarity(mod3:{int})->bool:
         if similarity == 1:
             return True
     return False
+
+
+
 
 def extract_next_links(url, resp):
     # Implementation required.
@@ -268,6 +279,15 @@ def report():
         frequented[word.strip()] += 1
     word_list_read.close()
 
+    f7 = open("subdomains_ics_uci_edu.txt", "a", encoding="UTF-8")
+    # for each_word in set_subdomain_pages:
+
+    for i, j in sorted(subdomain_pages.items()):
+        url = "https://" + i + ".ics.uci.edu/"
+        word = url + " , " + j
+        print(word, file=f7)
+    f7.close()
+
 
     # write the top 50 frequent words to analytics-report.txt file
     word_list_write = open("analytics-report.txt", "w", encoding="UTF-8")
@@ -291,6 +311,12 @@ def report():
     print(f"\nThe longest page's URL: {longest_page['url']}. Word count: {longest_page['word-count']}", file=word_list_write)
     print(f"\nThe longest page's URL: {longest_page['url']}. Word count: {longest_page['word-count']}")
 
+    all_unique = open("valid_urls.txt", "r")
+    valid_unique = open("all_links_found.txt", "r")
+    print(f"\nAll unique found: {sum([1 for i in all_unique])}. All unique valid found: {sum([1 for i in valid_unique])}", file=word_list_write)
+
+    all_unique.close()
+    valid_unique.close()
 
     word_list_write.close()
 
@@ -305,7 +331,7 @@ def is_valid(url):
         return False
     else:
         discovered_set_pages.add(url)
-        f2 = open("word_list2.txt", "a", encoding="UTF-8")
+        f2 = open("all_links_found.txt", "a", encoding="UTF-8")
         # for each_word in discovered_set_pages:
         print(url, file=f2)
         f2.close()
