@@ -78,7 +78,7 @@ def extract_next_links(url, resp):
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
     urls = []
     if resp.raw_response is None or resp is None:
-        word = f'"url": {url}, "content": {{"error": "Nonetype_no_raw_response", , "status:" None, "word_count:" none, "word": [], , "raw_response.content": []}}'
+        word = f'{{"url": {url}, "content": {{"error": "resp.raw_response is none or resp is none", "status:" none, "word_count:" none, "word": [], , "raw_response.content": []}}}}'
         f5 = open("all_web.json", "a", encoding="UTF-8")
         print(word, file=f5)
         f5.close()
@@ -236,13 +236,13 @@ def extract_next_links(url, resp):
             # print(url, resp.error)
             return list()
     except etree.Error as e:
-        word = f'{{"url": {url}, "content": {{"error": "etree error", "status:" {resp.status}, "word_count:" none, "word": [], , "raw_response.content": []}}}}'
+        word = f'{{"url": {url}, "content": {{"error": "etree error", "status:" 200, "word_count:" none, "word": [], , "raw_response.content": []}}}}'
         f5 = open("all_web.json", "a", encoding="UTF-8")
         print(word, file=f5)
         f5.close()
         return list()
     except Exception as e:
-        word = f'{{"url": {url}, "content": {{"error": "{e}", "status:" {resp.status}, "word_count:" none, "word": [], , "raw_response.content": []}}}}'
+        word = f'{{"url": {url}, "content": {{"error": "{e}", "status:" 200, "word_count:" none, "word": [], , "raw_response.content": []}}}}'
         f5 = open("all_web.json", "a", encoding="UTF-8")
         print(word, file=f5)
         f5.close()
