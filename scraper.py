@@ -234,6 +234,10 @@ def extract_next_links(url, resp):
             # return ["http://www.ics.uci.edu/~shantas/publications/12-Self-stabilizing_End-to-End_Communication.ppsx"]
         else:
             # print(url, resp.error)
+            word = f'{{"url": {url}, "content": {{"error": "other status code", "status:" {resp.status}, "word_count:" none, "word": [], , "raw_response.content": []}}}}'
+            f5 = open("all_web.json", "a", encoding="UTF-8")
+            print(word, file=f5)
+            f5.close()
             return list()
     except etree.Error as e:
         word = f'{{"url": {url}, "content": {{"error": "etree error", "status:" 200, "word_count:" none, "word": [], , "raw_response.content": []}}}}'
