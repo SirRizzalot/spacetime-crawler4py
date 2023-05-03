@@ -45,6 +45,7 @@ for domain in domain_list:
 
     disallowed_paths[domain] = result_data_set
     time.sleep(0.5)
+    #sleep for politeness
 
 
 # dictionary to contain subdomains of ics.uci.edu and number of unique pages in that subdomain
@@ -76,15 +77,25 @@ def extract_next_links(url, resp):
     #         resp.raw_response.content: the content of the page!
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
     urls = []
-    if resp.raw_response is None:
-        word = "Nonetype: " + url
-        f4 = open("error_log.txt", "a", encoding="UTF-8")
-        # for each_word in set_subdomain_pages:
-        print(word, file=f4)
-        f4.close()
+    if resp.raw_response is None or resp is None:
+        word = f'"url": {url}, "content": {{"error": "Nonetype_no_raw_response", , "status:" None, "word_count:" none, "word": [], , "raw_response.content": []}}'
+        f5 = open("all_web.json", "a", encoding="UTF-8")
+        print(word, file=f5)
+        f5.close()
         return list()
 
     try:
+        if resp.status == 301 or resp.status == 302:
+            word = f'"url": {url}, "content": {{"error": "redirect", , "status:" {resp.status}, "word_count:" none, "word": [], , "raw_response.content": []}}'
+            f5 = open("all_web.json", "a", encoding="UTF-8")
+            print(word, file=f5)
+            f5.close()
+            if url in finger_prints.keys():
+                return list()
+            urls.append(resp.raw_response.url)
+            return urls
+            # make url the url of redirected page
+            # url = resp.raw_response.url
         if resp.status == 200:
             if url in finger_prints.keys():
                 return list()
@@ -104,6 +115,11 @@ def extract_next_links(url, resp):
             #                   [0-9]+|(?:[a-zA-Z0-9]{1,}[a-zA-Z0-9]+(?:\'s|\.d){0,1})
             # regext for spliting it:
             #                   [0-9]+|(?:[a-zA-Z0-9]{1,}[a-zA-Z0-9]+)
+
+            word = f'{{"url": {url}, "content": {{"error": "Probably None", "status:" {resp.status}, "word_count:" {len(match)}, "word": [{", ".join(match)}], , "raw_response.content": [{", ".join(line_list)}]}}}}'
+            f5 = open("all_web.json", "a", encoding="UTF-8")
+            print(word, file=f5)
+            f5.close()
             if len(match) > 0 and match != ['exif', 'ii', 'ducky']:
 
 
@@ -125,10 +141,6 @@ def extract_next_links(url, resp):
                     f1.close()
 
 
-
-
-
-
                     # update page's word_count to len of word list
                     word_count = len(match)
                     # if current page's word count > the one in longest_page, update longest_page to wordcount and url of current page
@@ -144,7 +156,6 @@ def extract_next_links(url, resp):
             # tree = etree.parse(StringIO(resp.raw_response.content), root)
             # result = etree.tostring(tree.getroot(), pretty_print=True, method="html")
             # parsed_url = urlparse(etree.tostring(tree))
-
 
             # getting only the hyperlinks
             for link in tree.xpath('//a | //img'):
@@ -225,18 +236,16 @@ def extract_next_links(url, resp):
             # print(url, resp.error)
             return list()
     except etree.Error as e:
-        word = "ERROR: " + url + " " + "lxml error"
-        f4 = open("error_log.txt", "a", encoding="UTF-8")
-        # for each_word in set_subdomain_pages:
-        print(word, file=f4)
-        f4.close()
+        word = f'{{"url": {url}, "content": {{"error": "etree error", "status:" {resp.status}, "word_count:" none, "word": [], , "raw_response.content": []}}}}'
+        f5 = open("all_web.json", "a", encoding="UTF-8")
+        print(word, file=f5)
+        f5.close()
         return list()
     except Exception as e:
-        word = "ERROR: " + url + " " + e
-        f4 = open("error_log.txt", "a", encoding="UTF-8")
-        # for each_word in set_subdomain_pages:
-        print(word, file=f4)
-        f4.close()
+        word = f'{{"url": {url}, "content": {{"error": "{e}", "status:" {resp.status}, "word_count:" none, "word": [], , "raw_response.content": []}}}}'
+        f5 = open("all_web.json", "a", encoding="UTF-8")
+        print(word, file=f5)
+        f5.close()
         return list()
 
 
