@@ -65,19 +65,20 @@ subdomain_pages = {}
 set_subdomain_pages = set()
 discovered_set_pages = set()
 
-
+# receives url and parses through before returning valid urls scrapped from page to continue crawling towards
 def scraper(url:str, resp) -> list:
     links = extract_next_links(url, resp)
     valid_links = [link for link in links if is_valid(link)]
 
     valid_urls = open("valid_urls.txt", "a", encoding="UTF-8")
-    # for each_word in set_subdomain_pages:
+    # writing all valid urls into a file
     for i in valid_links:
         print(i, file=valid_urls)
     valid_urls.close()
 
     return valid_links
 
+# similarity based on fingerprint method
 def similarity(mod3:{int})->bool:
     for (url, val) in finger_prints.items():
         intersect = mod3.intersection(val)
@@ -89,7 +90,7 @@ def similarity(mod3:{int})->bool:
 
 
 
-
+# function to determine which urls to scrape
 def extract_next_links(url, resp):
     # Implementation required.
     # url: the URL that was used to get the page
@@ -101,6 +102,7 @@ def extract_next_links(url, resp):
     #         resp.raw_response.content: the content of the page!
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
     urls = []
+    # handling case where response is none
     if resp.raw_response is None or resp is None:
         word = f'{{"url": "{url}", "content": {{"error": "resp.raw_response is none or resp is none", "status": -1, "word_count": -1, "word": [], "raw_response.content": []}}}},'
         f5 = open("all_web.json", "a", encoding="UTF-8")
@@ -109,6 +111,7 @@ def extract_next_links(url, resp):
         return list()
 
     try:
+        # handling case where status code of url is 300s or redirect
         if resp.status == 301 or resp.status == 302:
             word = f'{{"url": "{url}", "content": {{"error": "redirect", , "status": {resp.status}, "word_count": -1, "word": [] , "raw_response.content": []}}}}, '
             f5 = open("all_web.json", "a", encoding="UTF-8")
@@ -118,27 +121,18 @@ def extract_next_links(url, resp):
                 return list()
             urls.append(resp.raw_response.url)
             return urls
-            # make url the url of redirected page
-            # url = resp.raw_response.url
+
+        # parses through url if status is 200
         if resp.status == 200:
             if url in finger_prints.keys():
                 return list()
             ### content parsing
-
-
             html_tree = html.fromstring(resp.raw_response.content)
-            # line_list = html_tree.xpath('//body//*[not(self::script)]//text()')
             line_list = html_tree.xpath('//body//*[not(self::script or self::style)]/text()')
 
             # grabs item within <p> </p>
-
             words = ' '.join(line_list)
             match = re.findall('[0-9]+|(?:[a-zA-Z0-9]{1,}[a-zA-Z0-9]+(?:\'s|\.d){0,1})', words.lower())
-            # print(match)
-            # regex for including that's and ph.d as it is:
-            #                   [0-9]+|(?:[a-zA-Z0-9]{1,}[a-zA-Z0-9]+(?:\'s|\.d){0,1})
-            # regext for spliting it:
-            #                   [0-9]+|(?:[a-zA-Z0-9]{1,}[a-zA-Z0-9]+)
 
             try:
                 word_list = [f'"{w}"' for w in match]  # Add double quotes around each element in match
@@ -154,23 +148,16 @@ def extract_next_links(url, resp):
                 f5 = open("all_web.json", "a", encoding="UTF-8")
                 print(word, file=f5)
                 f5.close()
+
             if len(match) > 0 and match != ['exif', 'ii', 'ducky']:
-
-
-
                 # using finger-print method to detect similarity
                 three_gram = [' '.join(match[i:i + 3]) for i in range(len(match) - 2)]
-
                 three_gram_hash_values = [sum(ord(t) for t in i) for i in three_gram]
-                # print("got this far")
-                mod3 = {i for i in three_gram_hash_values if i % 4 == 0 or i % 5 == 0}
 
+                mod3 = {i for i in three_gram_hash_values if i % 4 == 0 or i % 5 == 0}
                 if len(mod3) != 0:
                     if similarity(mod3):
                         return list()
-                    # print (append) all words to the txt file for word count later on
-
-
 
                     # update page's word_count to len of word list
                     word_count = len(match)
@@ -185,42 +172,26 @@ def extract_next_links(url, resp):
             parser = etree.HTMLParser()
             tree = etree.HTML(resp.raw_response.content, parser)
 
-
-
             f1 = open("word_list.txt", "a", encoding="UTF-8")
             for each_word in match:
                 print(each_word, file=f1)
             f1.close()
 
-            # tree = etree.parse(StringIO(resp.raw_response.content), root)
-            # result = etree.tostring(tree.getroot(), pretty_print=True, method="html")
-            # parsed_url = urlparse(etree.tostring(tree))
-
-            # getting only the hyperlinks
+            # getting only the hyperlinks from url
             for link in tree.xpath('//a | //img'):
                 relative_url = link.get('href') or link.get('src')
-                # relativeurl_src = link.get('src')
-                # print(relativeurl_src)
 
-                # statement to ignore #
+                # statement to ignore urls that are #
                 if relative_url and relative_url.startswith('#'):
-                    # print(relative_url)
                     continue
-
                 parsed_url = urlparse(relative_url)
-
-
-
-
 
                 # converting relative urls to absolute URL
                 if parsed_url.netloc == '' and parsed_url.scheme == '':
-                    # print(parsed_url)
                     parsed_url = urlparse(url)
                     net_loc = parsed_url.netloc
                     relative_url = net_loc + parsed_url.path
                     parsed_url = urlparse(relative_url)
-                    # print(parsed_url)
 
                 # checking to see if hyperlink has required properties of URLs
                 if parsed_url.scheme and parsed_url.netloc:
@@ -231,10 +202,10 @@ def extract_next_links(url, resp):
                     # looking for subdomains of the domain ics.uci.edu
                     if "ics.uci.edu" in parsed_url.netloc:
                         split_list = parsed_url.netloc.split(".")
-                        # print("HERE", split_list, split_list[1] == 'ics', split_list[2] == 'uci', split_list[3] == 'edu')
                         if split_list[1] == 'ics' and split_list[2] == 'uci' and split_list[3] == 'edu':
-                            # print(split_list, "TRUE")
+
                             if defrag not in set_subdomain_pages:
+                                # adding subdomains to a dictionary
                                 if split_list[0] in subdomain_pages:
                                     subdomain_pages[split_list[0]] = subdomain_pages.get(split_list[0]) + 1
                                 else:
@@ -242,40 +213,15 @@ def extract_next_links(url, resp):
                             set_subdomain_pages.add(defrag)
 
                             f3 = open("word_list3.txt", "a", encoding="UTF-8")
-                            # for each_word in set_subdomain_pages:
                             print(defrag, file=f3)
                             f3.close()
-                        # print(defrag, "NETLOC", parsed_url.netloc, "SPLIT", parsed_url.netloc.split(".")[0])
                     urls.append(defrag)
-
-                # converting relative urls to absolute URL
-                # if parsed_url.netloc == '' and parsed_url.scheme == '':
-                #     # print(parsed_url)
-                #     absolute_url = url + parsed_url.path
-                #     parsed_url = urlparse(absolute_url)
-                #     if "ics.uci.edu" in absolute_url:
-                #         print("ABOSLUTEURL", absolute_url,  urlparse(absolute_url))
-                #         if absolute_url in subdomain_pages:
-                #             subdomain_pages[absolute_url] = subdomain_pages.get(absolute_url) + 1
-                #         else:
-                #             subdomain_pages[absolute_url] = 1
-                #     urls.append(absolute_url)
-
-                # urls.append(relative_url)
             urls = list(dict.fromkeys(urls))
-            # print(urls)
-            # print(len(urls))
-            # print(set_subdomain_pages)
-            # subdomain_pages = sorted(subdomain_pages.items(), key = lambda x: (x[1],x[0]))
 
-            # print(subdomain_pages)
-
-            # print(etree.tostring(tree))
-            # print("\n\n\n")
             try:
                 tag_parser = etree.HTMLParser()
                 tag_tree = etree.HTML(resp.raw_response.content, tag_parser)
-                # count the number of tags in the hmtl file of the url
+                # counting the number of tags in the hmtl file of the url
                 num_tags = Counter()
                 num_tags.update(x.tag for x in tag_tree.iter())
                 sum_tags = sum(num_tags.values())
@@ -295,21 +241,21 @@ def extract_next_links(url, resp):
                 f5.close()
 
             return urls
-            # return list()
-            # return ["http://www.ics.uci.edu/~shantas/publications/12-Self-stabilizing_End-to-End_Communication.ppsx"]
+        # else statement for if the status of url isn't 200
         else:
-            # print(url, resp.error)
             word = f'{{"url": "{url}", "content": {{"error": "other status code", "status": {resp.status}, "word_count": -1, "word": [], "raw_response.content": []}}}}, '
             f5 = open("all_web.json", "a", encoding="UTF-8")
             print(word, file=f5)
             f5.close()
             return list()
+    # catching and handling etree.Error error
     except etree.Error as e:
         word = f'{{"url": "{url}", "content": {{"error": "etree error", "status": 200, "word_count": -1, "word": [], "raw_response.content": []}}}}, '
         f5 = open("all_web.json", "a", encoding="UTF-8")
         print(word, file=f5)
         f5.close()
         return list()
+    # catching and handling Exception error
     except Exception as e:
         word = f'{{"url": "{url}", "content": {{"error": "{e}", "status": 200, "word_count": -1, "word": [], "raw_response.content": []}}}}, '
         f5 = open("all_web.json", "a", encoding="UTF-8")
@@ -317,12 +263,10 @@ def extract_next_links(url, resp):
         f5.close()
         return list()
 
-
-def report(): 
-    #FOR TESTING ONLY!!!!!!!!!!!!!!
-    # print(disallowed_paths)
-
+# function to handle all data collected and put them into a file to obtain the information to write the report
+def report():
     # initialize list variables
+
     # a dictionary for all words found; containing words as key and their frequency as value in a list.
     frequented = defaultdict(int)
 
@@ -332,9 +276,6 @@ def report():
     for word in word_list_read: # each line will contain a word
         frequented[word.strip()] += 1
     word_list_read.close()
-
-
-
 
     # write the top 50 frequent words to analytics-report.txt file
     word_list_write = open("analytics-report.txt", "w", encoding="UTF-8")
@@ -365,8 +306,7 @@ def report():
     all_unique.close()
     valid_unique.close()
 
-
-    # for each_word in set_subdomain_pages:
+    # adding all the subdomains of ics.uci.edu and the number of unique pages in that subdomain into a file
     f7 = open("subdomains_ics_uci_edu.txt", "a", encoding="UTF-8")
     for i, j in sorted(subdomain_pages.items()):
         url = "https://" + i + ".ics.uci.edu/"
@@ -374,16 +314,15 @@ def report():
         print(word, file=f7)
     f7.close()
 
-
     word_list_write.close()
 
-
-
-
+# function to determine if url is valid to crawl
 def is_valid(url):
     # Decide whether to crawl this url or not.
     # If you decide to crawl it, return True; otherwise return False.
     # There are already some conditions that return False.
+
+    # adding urls into file to obtain all urls discovered(the url may or may not be valid)
     if url in discovered_set_pages:
         return False
     else:
@@ -393,6 +332,7 @@ def is_valid(url):
         print(url, file=f2)
         f2.close()
     try:
+        # parsing through url to determine where they are in the right domain
         parsed = urlparse(url)
         domain_name = re.findall(
                 r"(?:\.ics\.uci\.edu)|(?:\.cs\.uci\.edu)|(?:\.informatics\.uci\.edu)|(?:\.stat\.uci\.edu)", parsed.netloc)
@@ -405,9 +345,7 @@ def is_valid(url):
         if parsed.scheme not in ["http", "https"]:
             return False
 
-        #  url = https://www.ics.uci.edu
-        # hostname = www.ics.cui.edu
-        # print("parsed.path", parsed)
+        # checking to see if url has a file extension for a html file
         if re.match(r".*\.(css|js|bmp|gif|jpe?g|ico|png|tiff?|mid|mp2|mp3|mp4|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf|ppsx|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso|epub|dll|cnf|tgz|sha1|thmx|mso|arff|rtf|jar|csv|rm|smil|wmv|swf|wma|zip|rar|gz)$", parsed.query.lower()):
             return False
         return not re.match(
