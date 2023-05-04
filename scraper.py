@@ -138,8 +138,7 @@ def extract_next_links(url, resp):
                 word_list = [f'"{w}"' for w in match]  # Add double quotes around each element in match
                 line_list_quoted = [f'"{w}"' for w in line_list]  # Add double quotes around each element in line_list
                 word = '{{"url": "{url}", "content": {{"error": "Probably None", "status": {status}, "word_count": {count}, "word": [{words}], "raw_response.content": [{lines}]}}}},'.format(
-                    url=url, status=resp.status, count=len(match), words=", ".join(word_list),
-                    lines=", ".join(line_list_quoted))
+                    url=url, status=resp.status, count=len(match), words=", ".join(word_list), lines=", ".join(line_list_quoted))
                 f5 = open("all_web.json", "a", encoding="UTF-8")
                 print(word, file=f5)
                 f5.close()
@@ -338,10 +337,10 @@ def is_valid(url):
                 r"(?:\.ics\.uci\.edu)|(?:\.cs\.uci\.edu)|(?:\.informatics\.uci\.edu)|(?:\.stat\.uci\.edu)", parsed.netloc)
         if not domain_name:
             return False
-        if parsed.path in disallowed_paths[domain_name[0]]["Disallowed"]:
-            if parsed.path in disallowed_paths[domain_name[0]]["Allowed"]:
-                return True
-            return False
+        for disallowed in disallowed_paths[domain_name[0]]["Disallowed"]:
+            if len(parsed.path.split(disallowed)) > 1:
+                if parsed.path not in disallowed_paths[domain_name[0]]["Allowed"]:
+                    return False
         if parsed.scheme not in ["http", "https"]:
             return False
 
