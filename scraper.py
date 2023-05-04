@@ -44,6 +44,9 @@ for domain in domain_list:
     if "User-agent: " + bot_name in result:
         # substring of result, from User-agent: bot_name until the end of that section (empty line)
         result = result[result.find("User-agent: " + bot_name): result.find("\n\n", result.find("User-agent: " + bot_name))]
+    else:
+        # substring of result, from User-agent: * until the end of that section (empty line)
+        result = result[result.find("User-agent: *"): result.find("\n\n", result.find("User-agent: *"))]
     for line in result.split("\n"):
         if line.startswith('Allow'):    # this is for allowed url
             result_data_set["Allowed"].append(line.split(': ')[1].split(' ')[0])
