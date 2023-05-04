@@ -52,7 +52,7 @@ for domain in domain_list:
 subdomain_pages = {}
 set_subdomain_pages = set()
 discovered_set_pages = set()
-num_tags = 0
+
 
 def scraper(url:str, resp) -> list:
     links = extract_next_links(url, resp)
@@ -90,7 +90,7 @@ def extract_next_links(url, resp):
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
     urls = []
     if resp.raw_response is None or resp is None:
-        word = f'{{"url": {url}, "content": {{"error": "resp.raw_response is none or resp is none", "status:" none, "word_count:" none, "word": [], , "raw_response.content": []}}}}'
+        word = f'{{"url": "{url}", "content": {{"error": "resp.raw_response is none or resp is none", "status": none, "word_count": none, "word": [], "raw_response.content": []}}}},'
         f5 = open("all_web.json", "a", encoding="UTF-8")
         print(word, file=f5)
         f5.close()
@@ -98,7 +98,7 @@ def extract_next_links(url, resp):
 
     try:
         if resp.status == 301 or resp.status == 302:
-            word = f'"url": {url}, "content": {{"error": "redirect", , "status:" {resp.status}, "word_count:" none, "word": [], , "raw_response.content": []}}'
+            word = f'{{"url": "{url}", "content": {{"error": "redirect", , "status": {resp.status}, "word_count": none, "word": [] , "raw_response.content": []}}}}, '
             f5 = open("all_web.json", "a", encoding="UTF-8")
             print(word, file=f5)
             f5.close()
@@ -128,10 +128,20 @@ def extract_next_links(url, resp):
             # regext for spliting it:
             #                   [0-9]+|(?:[a-zA-Z0-9]{1,}[a-zA-Z0-9]+)
 
-            word = f'{{"url": {url}, "content": {{"error": "Probably None", "status:" {resp.status}, "word_count:" {len(match)}, "word": [{", ".join(match)}], , "raw_response.content": [{", ".join(line_list)}]}}}}'
-            f5 = open("all_web.json", "a", encoding="UTF-8")
-            print(word, file=f5)
-            f5.close()
+            try:
+                word_list = [f'"{w}"' for w in match]  # Add double quotes around each element in match
+                line_list_quoted = [f'"{w}"' for w in line_list]  # Add double quotes around each element in line_list
+                word = '{{"url": "{url}", "content": {{"error": "Probably None", "status": {status}, "word_count": {count}, "word": [{words}], "raw_response.content": [{lines}]}}}},'.format(
+                    url=url, status=resp.status, count=len(match), words=", ".join(word_list),
+                    lines=", ".join(line_list_quoted))
+                f5 = open("all_web.json", "a", encoding="UTF-8")
+                print(word, file=f5)
+                f5.close()
+            except:
+                word = f'{{"url": "{url}", "content": {{"error": "Probably None", "status": {resp.status}, "word_count": {len(match)}, "word": [], "raw_response.content": []}}}},'
+                f5 = open("all_web.json", "a", encoding="UTF-8")
+                print(word, file=f5)
+                f5.close()
             if len(match) > 0 and match != ['exif', 'ii', 'ducky']:
 
 
@@ -147,10 +157,7 @@ def extract_next_links(url, resp):
                     if similarity(mod3):
                         return list()
                     # print (append) all words to the txt file for word count later on
-                    f1 = open("word_list.txt", "a", encoding="UTF-8")
-                    for each_word in match:
-                        print(each_word, file=f1)
-                    f1.close()
+
 
 
                     # update page's word_count to len of word list
@@ -165,6 +172,14 @@ def extract_next_links(url, resp):
             ### URL retrieval
             parser = etree.HTMLParser()
             tree = etree.HTML(resp.raw_response.content, parser)
+
+
+
+            f1 = open("word_list.txt", "a", encoding="UTF-8")
+            for each_word in match:
+                print(each_word, file=f1)
+            f1.close()
+
             # tree = etree.parse(StringIO(resp.raw_response.content), root)
             # result = etree.tostring(tree.getroot(), pretty_print=True, method="html")
             # parsed_url = urlparse(etree.tostring(tree))
@@ -182,8 +197,7 @@ def extract_next_links(url, resp):
 
                 parsed_url = urlparse(relative_url)
 
-                # count the number of tags in the hmtl file of the url
-                num_tags += Counter(x.tag for x in tree.iter())
+
 
 
 
@@ -246,24 +260,45 @@ def extract_next_links(url, resp):
 
             # print(etree.tostring(tree))
             # print("\n\n\n")
+            try:
+                tag_parser = etree.HTMLParser()
+                tag_tree = etree.HTML(resp.raw_response.content, tag_parser)
+                # count the number of tags in the hmtl file of the url
+                num_tags = 0
+                num_tags += Counter(x.tag for x in tag_tree.iter())
+
+                f1 = open("url_tag_word.txt", "a", encoding="UTF-8")
+                print(f'"{url}", {num_tags}, {len(word)}')
+                f1.close()
+            except etree.Error as e:
+                word = f'{{"url": "{url}", "content": {{"error_at_tag": "etree error", "status": "200", "word_count": "-1", "word": [], "raw_response.content": []}}}}, '
+                f5 = open("all_web.json", "a", encoding="UTF-8")
+                print(word, file=f5)
+                f5.close()
+            except Exception as e:
+                word = f'{{"url": "{url}", "content": {{"error_at_tag": "{e}", "status": "200", "word_count": "-1", "word": [], "raw_response.content": []}}}}, '
+                f5 = open("all_web.json", "a", encoding="UTF-8")
+                print(word, file=f5)
+                f5.close()
+
             return urls
             # return list()
             # return ["http://www.ics.uci.edu/~shantas/publications/12-Self-stabilizing_End-to-End_Communication.ppsx"]
         else:
             # print(url, resp.error)
-            word = f'{{"url": {url}, "content": {{"error": "other status code", "status:" {resp.status}, "word_count:" none, "word": [], , "raw_response.content": []}}}}'
+            word = f'{{"url": "{url}", "content": {{"error": "other status code", "status": {resp.status}, "word_count": none, "word": [], "raw_response.content": []}}}}, '
             f5 = open("all_web.json", "a", encoding="UTF-8")
             print(word, file=f5)
             f5.close()
             return list()
     except etree.Error as e:
-        word = f'{{"url": {url}, "content": {{"error": "etree error", "status:" 200, "word_count:" none, "word": [], , "raw_response.content": []}}}}'
+        word = f'{{"url": "{url}", "content": {{"error": "etree error", "status": "200", "word_count": "-1", "word": [], "raw_response.content": []}}}}, '
         f5 = open("all_web.json", "a", encoding="UTF-8")
         print(word, file=f5)
         f5.close()
         return list()
     except Exception as e:
-        word = f'{{"url": {url}, "content": {{"error": "{e}", "status:" 200, "word_count:" none, "word": [], , "raw_response.content": []}}}}'
+        word = f'{{"url": "{url}", "content": {{"error": "{e}", "status:" 200, "word_count:" "-1", "word": [], "raw_response.content": []}}}}, '
         f5 = open("all_web.json", "a", encoding="UTF-8")
         print(word, file=f5)
         f5.close()
@@ -317,14 +352,15 @@ def report():
     all_unique.close()
     valid_unique.close()
 
-    f7 = open("subdomains_ics_uci_edu.txt", "a", encoding="UTF-8")
-    # for each_word in set_subdomain_pages:
 
+    # for each_word in set_subdomain_pages:
+    f7 = open("subdomains_ics_uci_edu.txt", "a", encoding="UTF-8")
     for i, j in sorted(subdomain_pages.items()):
         url = "https://" + i + ".ics.uci.edu/"
         word = url + " , " + str(j)
         print(word, file=f7)
     f7.close()
+
 
     word_list_write.close()
 
