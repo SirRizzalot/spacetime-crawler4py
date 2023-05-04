@@ -6,7 +6,7 @@ import time
 
 
 from utils.download import download
-from collections import defaultdict
+from collections import defaultdict, Counter
 
 stop_words = ["a", "about", "above", "after", "again", "against", "all", "am", "an", "and", "any", 
             "are", "aren't", "as", "at", "be", "because", "been", "before", "being", "below", "between", 
@@ -52,6 +52,7 @@ for domain in domain_list:
 subdomain_pages = {}
 set_subdomain_pages = set()
 discovered_set_pages = set()
+num_tags = 0
 
 def scraper(url:str, resp) -> list:
     links = extract_next_links(url, resp)
@@ -181,6 +182,11 @@ def extract_next_links(url, resp):
 
                 parsed_url = urlparse(relative_url)
 
+                # count the number of tags in the hmtl file of the url
+                num_tags += Counter(x.tag for x in tree.iter())
+
+
+
                 # converting relative urls to absolute URL
                 if parsed_url.netloc == '' and parsed_url.scheme == '':
                     # print(parsed_url)
@@ -279,14 +285,7 @@ def report():
         frequented[word.strip()] += 1
     word_list_read.close()
 
-    f7 = open("subdomains_ics_uci_edu.txt", "a", encoding="UTF-8")
-    # for each_word in set_subdomain_pages:
 
-    for i, j in sorted(subdomain_pages.items()):
-        url = "https://" + i + ".ics.uci.edu/"
-        word = url + " , " + j
-        print(word, file=f7)
-    f7.close()
 
 
     # write the top 50 frequent words to analytics-report.txt file
@@ -317,6 +316,15 @@ def report():
 
     all_unique.close()
     valid_unique.close()
+
+    f7 = open("subdomains_ics_uci_edu.txt", "a", encoding="UTF-8")
+    # for each_word in set_subdomain_pages:
+
+    for i, j in sorted(subdomain_pages.items()):
+        url = "https://" + i + ".ics.uci.edu/"
+        word = url + " , " + str(j)
+        print(word, file=f7)
+    f7.close()
 
     word_list_write.close()
 
