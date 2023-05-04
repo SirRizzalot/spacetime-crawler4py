@@ -29,6 +29,7 @@ longest_page = {"url":"", "word-count": 0}
 domain_list = [".ics.uci.edu", ".cs.uci.edu", ".informatics.uci.edu", ".stat.uci.edu"]
 disallowed_paths = {}
 finger_prints = {}
+bot_name = "ourverycoolbot"  # bot name (to check on robots.txt file) 
 
 
 #then parse robots.txt of all domains
@@ -37,6 +38,12 @@ for domain in domain_list:
     result = os.popen(curl_url).read()
     result_data_set = {"Disallowed":[], "Allowed":[]}
     print(result)
+    useragent_list = {}
+
+    # if there is our bot, slice result to that block only
+    if "User-agent: " + bot_name in result:
+        # substring of result, from User-agent: bot_name until the end of that section (empty line)
+        result = result[result.find("User-agent: " + bot_name): result.find("\n\n", result.find("User-agent: " + bot_name))]
     for line in result.split("\n"):
         if line.startswith('Allow'):    # this is for allowed url
             result_data_set["Allowed"].append(line.split(': ')[1].split(' ')[0])
