@@ -32,11 +32,23 @@ finger_prints = {}
 
 
 #then parse robots.txt of all domains
+bot_name = "robot"  # bot name (to check on robots.txt file)
+
+
+#then parse robots.txt of all domains
 for domain in domain_list:
     curl_url = "curl https://www" + domain + "/robots.txt"
     result = os.popen(curl_url).read()
     result_data_set = {"Disallowed":[], "Allowed":[]}
-    print(result)
+    useragent_list = {}
+
+    # if there is our bot, slice result to that block only
+    if "User-agent: " + bot_name in result:
+        # substring of result, from User-agent: bot_name until the end of that section (empty line)
+        result = result[result.find("User-agent: " + bot_name): result.find("\n\n", result.find("User-agent: " + bot_name))]
+    else:
+        # substring of result, from User-agent: * until the end of that section (empty line)
+        result = result[result.find("User-agent: *"): result.find("\n\n", result.find("User-agent: *"))]
     for line in result.split("\n"):
         if line.startswith('Allow'):    # this is for allowed url
             result_data_set["Allowed"].append(line.split(': ')[1].split(' ')[0])
@@ -45,7 +57,7 @@ for domain in domain_list:
 
     disallowed_paths[domain] = result_data_set
     time.sleep(0.5)
-    #sleep for politeness
+    #politeness
 
 
 # dictionary to contain subdomains of ics.uci.edu and number of unique pages in that subdomain
