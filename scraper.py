@@ -90,7 +90,7 @@ def extract_next_links(url, resp):
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
     urls = []
     if resp.raw_response is None or resp is None:
-        word = f'{{"url": "{url}", "content": {{"error": "resp.raw_response is none or resp is none", "status": none, "word_count": none, "word": [], "raw_response.content": []}}}},'
+        word = f'{{"url": "{url}", "content": {{"error": "resp.raw_response is none or resp is none", "status": -1, "word_count": -1, "word": [], "raw_response.content": []}}}},'
         f5 = open("all_web.json", "a", encoding="UTF-8")
         print(word, file=f5)
         f5.close()
@@ -98,7 +98,7 @@ def extract_next_links(url, resp):
 
     try:
         if resp.status == 301 or resp.status == 302:
-            word = f'{{"url": "{url}", "content": {{"error": "redirect", , "status": {resp.status}, "word_count": none, "word": [] , "raw_response.content": []}}}}, '
+            word = f'{{"url": "{url}", "content": {{"error": "redirect", , "status": {resp.status}, "word_count": -1, "word": [] , "raw_response.content": []}}}}, '
             f5 = open("all_web.json", "a", encoding="UTF-8")
             print(word, file=f5)
             f5.close()
@@ -264,19 +264,20 @@ def extract_next_links(url, resp):
                 tag_parser = etree.HTMLParser()
                 tag_tree = etree.HTML(resp.raw_response.content, tag_parser)
                 # count the number of tags in the hmtl file of the url
-                num_tags = 0
-                num_tags += Counter(x.tag for x in tag_tree.iter())
+                num_tags = Counter()
+                num_tags.update(x.tag for x in tag_tree.iter())
+                sum_tags = sum(num_tags.values())
 
                 f1 = open("url_tag_word.txt", "a", encoding="UTF-8")
-                print(f'"{url}", {num_tags}, {len(word)}')
+                print(f'"{url}", {sum_tags}, {len(match)}', file=f1)
                 f1.close()
             except etree.Error as e:
-                word = f'{{"url": "{url}", "content": {{"error_at_tag": "etree error", "status": "200", "word_count": "-1", "word": [], "raw_response.content": []}}}}, '
+                word = f'{{"url": "{url}", "content": {{"error_at_tag": "etree error", "status": 200, "word_count": -1, "word": [], "raw_response.content": []}}}}, '
                 f5 = open("all_web.json", "a", encoding="UTF-8")
                 print(word, file=f5)
                 f5.close()
             except Exception as e:
-                word = f'{{"url": "{url}", "content": {{"error_at_tag": "{e}", "status": "200", "word_count": "-1", "word": [], "raw_response.content": []}}}}, '
+                word = f'{{"url": "{url}", "content": {{"error_at_tag": "{e}", "status": 200, "word_count": -1, "word": [], "raw_response.content": []}}}}, '
                 f5 = open("all_web.json", "a", encoding="UTF-8")
                 print(word, file=f5)
                 f5.close()
@@ -286,19 +287,19 @@ def extract_next_links(url, resp):
             # return ["http://www.ics.uci.edu/~shantas/publications/12-Self-stabilizing_End-to-End_Communication.ppsx"]
         else:
             # print(url, resp.error)
-            word = f'{{"url": "{url}", "content": {{"error": "other status code", "status": {resp.status}, "word_count": none, "word": [], "raw_response.content": []}}}}, '
+            word = f'{{"url": "{url}", "content": {{"error": "other status code", "status": {resp.status}, "word_count": -1, "word": [], "raw_response.content": []}}}}, '
             f5 = open("all_web.json", "a", encoding="UTF-8")
             print(word, file=f5)
             f5.close()
             return list()
     except etree.Error as e:
-        word = f'{{"url": "{url}", "content": {{"error": "etree error", "status": "200", "word_count": "-1", "word": [], "raw_response.content": []}}}}, '
+        word = f'{{"url": "{url}", "content": {{"error": "etree error", "status": 200, "word_count": -1, "word": [], "raw_response.content": []}}}}, '
         f5 = open("all_web.json", "a", encoding="UTF-8")
         print(word, file=f5)
         f5.close()
         return list()
     except Exception as e:
-        word = f'{{"url": "{url}", "content": {{"error": "{e}", "status:" 200, "word_count:" "-1", "word": [], "raw_response.content": []}}}}, '
+        word = f'{{"url": "{url}", "content": {{"error": "{e}", "status": 200, "word_count": -1, "word": [], "raw_response.content": []}}}}, '
         f5 = open("all_web.json", "a", encoding="UTF-8")
         print(word, file=f5)
         f5.close()
