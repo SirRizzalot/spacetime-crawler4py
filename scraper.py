@@ -186,7 +186,7 @@ def extract_next_links(url, resp):
                 # checking low context/high context constraint
                 if len(match) > 0:
                     ratio = (len(match) - sum_tags) / len(match)
-                    if ratio < -.85:
+                    if ratio < -.9:
                         return list()
 
 
