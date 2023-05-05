@@ -171,6 +171,36 @@ def extract_next_links(url, resp):
             parser = etree.HTMLParser()
             tree = etree.HTML(resp.raw_response.content, parser)
 
+            try:
+                tag_parser = etree.HTMLParser()
+                tag_tree = etree.HTML(resp.raw_response.content, tag_parser)
+                # counting the number of tags in the hmtl file of the url
+                num_tags = Counter()
+                num_tags.update(x.tag for x in tag_tree.iter())
+                sum_tags = sum(num_tags.values())
+                # logs the number of tag, and word count for analysis
+                f1 = open("url_tag_word.txt", "a", encoding="UTF-8")
+                print(f'"{url}", {sum_tags}, {len(match)}', file=f1)
+                f1.close()
+
+                # checking low context/high context constraint
+                if len(match) > 0:
+                    ratio = (len(match) - sum_tags) / len(match)
+                    if ratio < -.85:
+                        return list()
+
+
+            except etree.Error as e:
+                word = f'{{"url": "{url}", "content": {{"error_at_tag": "etree error", "status": 200, "word_count": -1, "word": [], "raw_response.content": []}}}}, '
+                f5 = open("all_web.json", "a", encoding="UTF-8")
+                print(word, file=f5)
+                f5.close()
+            except Exception as e:
+                word = f'{{"url": "{url}", "content": {{"error_at_tag": "{e}", "status": 200, "word_count": -1, "word": [], "raw_response.content": []}}}}, '
+                f5 = open("all_web.json", "a", encoding="UTF-8")
+                print(word, file=f5)
+                f5.close()
+
             f1 = open("word_list.txt", "a", encoding="UTF-8")
             for each_word in match:
                 print(each_word, file=f1)
@@ -217,27 +247,7 @@ def extract_next_links(url, resp):
                     urls.append(defrag)
             urls = list(dict.fromkeys(urls))
 
-            try:
-                tag_parser = etree.HTMLParser()
-                tag_tree = etree.HTML(resp.raw_response.content, tag_parser)
-                # counting the number of tags in the hmtl file of the url
-                num_tags = Counter()
-                num_tags.update(x.tag for x in tag_tree.iter())
-                sum_tags = sum(num_tags.values())
 
-                f1 = open("url_tag_word.txt", "a", encoding="UTF-8")
-                print(f'"{url}", {sum_tags}, {len(match)}', file=f1)
-                f1.close()
-            except etree.Error as e:
-                word = f'{{"url": "{url}", "content": {{"error_at_tag": "etree error", "status": 200, "word_count": -1, "word": [], "raw_response.content": []}}}}, '
-                f5 = open("all_web.json", "a", encoding="UTF-8")
-                print(word, file=f5)
-                f5.close()
-            except Exception as e:
-                word = f'{{"url": "{url}", "content": {{"error_at_tag": "{e}", "status": 200, "word_count": -1, "word": [], "raw_response.content": []}}}}, '
-                f5 = open("all_web.json", "a", encoding="UTF-8")
-                print(word, file=f5)
-                f5.close()
 
             return urls
         # else statement for if the status of url isn't 200
@@ -337,6 +347,7 @@ def is_valid(url):
                 r"(?:\.ics\.uci\.edu)|(?:\.cs\.uci\.edu)|(?:\.informatics\.uci\.edu)|(?:\.stat\.uci\.edu)", parsed.netloc)
         if not domain_name:
             return False
+        # robots allow/disallow check
         for disallowed in disallowed_paths[domain_name[0]]["Disallowed"]:
             if len(parsed.path.split(disallowed)) > 1:
                 if parsed.path not in disallowed_paths[domain_name[0]]["Allowed"]:
@@ -352,7 +363,7 @@ def is_valid(url):
 
     except:
         print(parsed)
-        raise
+        return False
 
 
 if __name__ == "__main__":
